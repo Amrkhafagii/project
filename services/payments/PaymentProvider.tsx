@@ -1,19 +1,9 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 
-interface PaymentMethod {
-  id: string;
-  type: 'card' | 'paypal' | 'apple_pay' | 'google_pay';
-  last4?: string;
-  brand?: string;
-  isDefault: boolean;
-}
-
 interface PaymentContextType {
-  paymentMethods: PaymentMethod[];
-  processPayment: (amount: number, paymentMethodId: string) => Promise<string>;
-  addPaymentMethod: (paymentMethod: Omit<PaymentMethod, 'id'>) => Promise<PaymentMethod>;
-  removePaymentMethod: (paymentMethodId: string) => Promise<void>;
-  setDefaultPaymentMethod: (paymentMethodId: string) => Promise<void>;
+  processPayment: (amount: number, method: string) => Promise<{ success: boolean; error?: string }>;
+  getPaymentMethods: () => Promise<any[]>;
+  addPaymentMethod: (method: any) => Promise<{ success: boolean; error?: string }>;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -23,51 +13,39 @@ interface PaymentProviderProps {
 }
 
 export function PaymentProvider({ children }: PaymentProviderProps) {
-  // Mock payment methods for demo
-  const paymentMethods: PaymentMethod[] = [
-    {
-      id: '1',
-      type: 'card',
-      last4: '4242',
-      brand: 'visa',
-      isDefault: true
-    }
-  ];
-
-  const processPayment = async (amount: number, paymentMethodId: string): Promise<string> => {
+  const processPayment = async (amount: number, method: string) => {
     // Mock payment processing
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`payment_${Date.now()}`);
-      }, 2000);
-    });
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'Payment failed' };
+    }
   };
 
-  const addPaymentMethod = async (paymentMethod: Omit<PaymentMethod, 'id'>): Promise<PaymentMethod> => {
+  const getPaymentMethods = async () => {
+    // Mock payment methods
+    return [
+      { id: '1', type: 'card', last4: '4242', brand: 'visa' },
+      { id: '2', type: 'card', last4: '5555', brand: 'mastercard' },
+    ];
+  };
+
+  const addPaymentMethod = async (method: any) => {
     // Mock adding payment method
-    const newMethod: PaymentMethod = {
-      ...paymentMethod,
-      id: `pm_${Date.now()}`
-    };
-    return newMethod;
-  };
-
-  const removePaymentMethod = async (paymentMethodId: string): Promise<void> => {
-    // Mock removing payment method
-    console.log('Removing payment method:', paymentMethodId);
-  };
-
-  const setDefaultPaymentMethod = async (paymentMethodId: string): Promise<void> => {
-    // Mock setting default payment method
-    console.log('Setting default payment method:', paymentMethodId);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'Failed to add payment method' };
+    }
   };
 
   const value: PaymentContextType = {
-    paymentMethods,
     processPayment,
+    getPaymentMethods,
     addPaymentMethod,
-    removePaymentMethod,
-    setDefaultPaymentMethod
   };
 
   return (
