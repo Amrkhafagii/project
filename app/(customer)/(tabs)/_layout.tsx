@@ -1,8 +1,15 @@
-import React from 'react';
 import { Tabs } from 'expo-router';
-import { useAuth } from '@/services/auth/authService';
-import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
+import { useAuth } from '@/services/auth/AuthProvider';
 import { Home, Search, ShoppingCart, Activity, User } from 'lucide-react-native';
+import { View, ActivityIndicator } from 'react-native';
+
+function LoadingSpinner() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator size="large" color="#007AFF" />
+    </View>
+  );
+}
 
 export default function CustomerTabLayout() {
   const { user, loading } = useAuth();
@@ -12,27 +19,27 @@ export default function CustomerTabLayout() {
   }
 
   if (!user) {
-    return null; // This will trigger a redirect to auth
+    return null; // Will redirect to auth
   }
 
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#10B981',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: '#F3F4F6',
-          paddingBottom: 4,
-          paddingTop: 4,
-          height: 60,
+          borderTopColor: '#E5E5EA',
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 88,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: '500',
         },
+        headerShown: false,
       }}
     >
       <Tabs.Screen

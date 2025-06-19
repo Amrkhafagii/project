@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 export function useFrameworkReady() {
@@ -11,9 +11,7 @@ export function useFrameworkReady() {
     async function prepare() {
       try {
         // Pre-load fonts, make any API calls you need to do here
-        // await Font.loadAsync(Entypo.font);
-        
-        // Artificially delay for demo purposes
+        // For now, we'll just simulate some loading time
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (e) {
         console.warn(e);
