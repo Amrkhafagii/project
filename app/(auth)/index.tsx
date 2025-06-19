@@ -30,7 +30,7 @@ export default function AuthScreen() {
     try {
       const { error } = isLogin 
         ? await signIn(email, password)
-        : await signUp(email, password, { role: 'customer' });
+        : await signUp(email, password, 'customer');
 
       if (error) {
         Alert.alert('Error', error.message);

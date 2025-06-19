@@ -41,7 +41,7 @@ export default function CustomerSignupScreen() {
 
     setLoading(true);
     try {
-      const { error } = await signUp(email, password, fullName, 'customer');
+      const { error } = await signUp(email, password, 'customer', fullName);
       if (error) {
         Alert.alert('Signup Failed', error.message);
       } else {
