@@ -6,6 +6,7 @@ import { User, UserRole } from '@/types/auth';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  didCheckAuth: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, role: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
@@ -17,6 +18,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [didCheckAuth, setDidCheckAuth] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
       } finally {
         setLoading(false);
+        setDidCheckAuth(true);
       }
     };
 
@@ -75,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
         } finally {
           setLoading(false);
+          setDidCheckAuth(true);
         }
       }
     );
@@ -142,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ 
       user, 
       loading, 
+      didCheckAuth,
       signIn, 
       signUp, 
       signOut, 

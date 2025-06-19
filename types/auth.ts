@@ -7,7 +7,6 @@ export interface User {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  onboarded?: boolean;
   avatar?: string;
   onboarded?: boolean;
   createdAt: string;

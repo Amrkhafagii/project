@@ -6,12 +6,13 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { Colors } from '@/constants';
 
 export default function IndexScreen() {
-  const { user, loading } = useAuth();
+  const { user, loading, didCheckAuth } = useAuth();
   const isFrameworkReady = useFrameworkReady();
 
   console.log('Index: Framework ready?', isFrameworkReady);
   console.log('Index: Auth loading?', loading);
   console.log('Index: User exists?', !!user);
+  console.log('Index: Auth check completed?', didCheckAuth);
   console.log('Index: User data:', user ? { 
     id: user.id, 
     email: user.email, 
@@ -19,7 +20,7 @@ export default function IndexScreen() {
   } : 'null');
 
   useEffect(() => {
-    if (!isFrameworkReady || loading) return;
+    if (!isFrameworkReady || loading || !didCheckAuth) return;
 
     console.log('Index: Navigation logic executing...');
 
@@ -70,7 +71,7 @@ export default function IndexScreen() {
         console.log('Index: Redirecting to auth/login (invalid role)');
         router.replace('/(auth)/login');
     }
-  }, [user, loading, isFrameworkReady]);
+  }, [user, loading, isFrameworkReady, didCheckAuth]);
 
   // Show loading screen while determining route
   return (
