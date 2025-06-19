@@ -106,7 +106,41 @@ export const authService = {
     }
 
     if (!profile) {
-      throw new Error('User profile not found');
+      // If profile doesn't exist, get user email from auth and create default profile
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authUser.user) {
+        throw new Error('User profile not found and unable to get auth user');
+      }
+
+      // Create default profile
+      const { data: newProfile, error: createError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: authUser.user.email!,
+          role: 'customer',
+          first_name: '',
+          last_name: '',
+          phone: null,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        throw new Error(`Failed to create user profile: ${createError.message}`);
+      }
+
+      return {
+        id: newProfile.id,
+        email: newProfile.email,
+        role: newProfile.role as UserRole,
+        firstName: newProfile.first_name,
+        lastName: newProfile.last_name,
+        phone: newProfile.phone,
+        createdAt: newProfile.created_at,
+        updatedAt: newProfile.updated_at,
+      };
     }
 
     return {
