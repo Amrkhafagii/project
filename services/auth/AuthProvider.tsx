@@ -21,15 +21,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      console.log('AuthProvider: Getting initial session...');
+      console.log('AuthProvider: Getting initial session');
       try {
         const { data: { session } } = await supabase.auth.getSession();
         console.log('AuthProvider: Session retrieved, exists?', !!session?.user);
         if (session?.user) {
-          console.log('AuthProvider: Fetching user profile for user ID:', session.user.id);
-          const userProfile = await authService.getUserProfile(session.user.id);
-          console.log('AuthProvider: User profile retrieved:', userProfile?.id, userProfile?.role);
-          setUser(userProfile);
+          try {
+            console.log('AuthProvider: Fetching user profile for user ID:', session.user.id);
+            const userProfile = await authService.getUserProfile(session.user.id);
+            console.log('AuthProvider: User profile retrieved:', userProfile?.id, userProfile?.role);
+            setUser(userProfile);
+          } catch (profileError) {
+            console.error('Failed to load user profile:', profileError);
+            // If profile loading fails, we'll treat as not logged in
+            setUser(null);
+          }
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
@@ -47,13 +53,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('AuthProvider: Auth state changed, event:', event);
         console.log('AuthProvider: Session exists?', !!session?.user);
         try {
-          if (session?.user) {
+          if (!session?.user) {
+            console.log('AuthProvider: No active session, setting user to null');
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+          
+          try {
             console.log('AuthProvider: Fetching user profile on auth change for user ID:', session.user.id);
             const userProfile = await authService.getUserProfile(session.user.id);
             console.log('AuthProvider: User profile retrieved on auth change:', userProfile?.id, userProfile?.role);
             setUser(userProfile);
-          } else {
-            console.log('AuthProvider: No session, setting user to null');
+          } catch (profileError) {
+            console.error('Failed to load user profile during auth change:', profileError);
+            // If profile loading fails, we'll treat as not logged in
             setUser(null);
           }
         } catch (error) {

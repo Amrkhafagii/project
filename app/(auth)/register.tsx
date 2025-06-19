@@ -34,6 +34,12 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     // Validation
+    const fullNameValidation = validateRequired(fullName, 'Full Name');
+    if (!fullNameValidation.isValid) {
+      Alert.alert('Error', fullNameValidation.message);
+      return;
+    }
+
     const emailValidation = validateRequired(email, 'Email');
     if (!emailValidation.isValid) {
       Alert.alert('Error', emailValidation.message);
@@ -58,9 +64,12 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
+      console.log(`Signing up user with role: ${selectedRole}, fullName: ${fullName}`);
       await signUp(email, password, selectedRole, fullName);
+      console.log('Signup successful, redirecting...');
       // Navigation will be handled by the index.tsx based on user role
     } catch (error: any) {
+      console.error('Registration error:', error);
       Alert.alert('Registration Failed', error.message || 'An error occurred');
     } finally {
       setLoading(false);

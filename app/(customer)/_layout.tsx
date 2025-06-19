@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useAuth } from '@/services/auth/AuthProvider';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 
 export default function CustomerLayout() {
   const { user, loading } = useAuth();
