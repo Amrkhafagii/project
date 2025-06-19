@@ -35,8 +35,8 @@ export const authService = {
       id: profile.id,
       email: profile.email,
       role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      firstName: profile.full_name,
+      lastName: undefined,
       phone: profile.phone,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
@@ -64,8 +64,7 @@ export const authService = {
         id: authData.user.id,
         email: authData.user.email!,
         role,
-        first_name: '',
-        last_name: '',
+        full_name: '',
         phone: null,
       })
       .select()
@@ -79,8 +78,8 @@ export const authService = {
       id: profile.id,
       email: profile.email,
       role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      firstName: profile.full_name,
+      lastName: undefined,
       phone: profile.phone,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
@@ -120,8 +119,7 @@ export const authService = {
           id: userId,
           email: authUser.user.email!,
           role: 'customer',
-          first_name: '',
-          last_name: '',
+          full_name: '',
           phone: null,
         })
         .select()
@@ -135,8 +133,8 @@ export const authService = {
         id: newProfile.id,
         email: newProfile.email,
         role: newProfile.role as UserRole,
-        firstName: newProfile.first_name,
-        lastName: newProfile.last_name,
+        firstName: newProfile.full_name,
+        lastName: undefined,
         phone: newProfile.phone,
         createdAt: newProfile.created_at,
         updatedAt: newProfile.updated_at,
@@ -147,8 +145,8 @@ export const authService = {
       id: profile.id,
       email: profile.email,
       role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      firstName: profile.full_name,
+      lastName: undefined,
       phone: profile.phone,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
@@ -158,8 +156,7 @@ export const authService = {
   async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
     const updateData: any = {};
     
-    if (updates.firstName !== undefined) updateData.first_name = updates.firstName;
-    if (updates.lastName !== undefined) updateData.last_name = updates.lastName;
+    if (updates.firstName !== undefined) updateData.full_name = updates.firstName;
     if (updates.phone !== undefined) updateData.phone = updates.phone;
     if (updates.email !== undefined) updateData.email = updates.email;
 
@@ -178,8 +175,8 @@ export const authService = {
       id: profile.id,
       email: profile.email,
       role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      firstName: profile.full_name,
+      lastName: undefined,
       phone: profile.phone,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
