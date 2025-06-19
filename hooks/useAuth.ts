@@ -4,7 +4,8 @@ import { AuthContext } from '@/services/auth/AuthProvider';
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    console.error('useAuth hook used outside of AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider component');
   }
   return context;
 }

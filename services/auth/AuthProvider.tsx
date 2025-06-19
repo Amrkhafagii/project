@@ -21,10 +21,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
+      console.log('AuthProvider: Getting initial session...');
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('AuthProvider: Session retrieved, exists?', !!session?.user);
         if (session?.user) {
+          console.log('AuthProvider: Fetching user profile for user ID:', session.user.id);
           const userProfile = await authService.getUserProfile(session.user.id);
+          console.log('AuthProvider: User profile retrieved:', userProfile?.id, userProfile?.role);
           setUser(userProfile);
         }
       } catch (error) {
@@ -40,11 +44,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('AuthProvider: Auth state changed, event:', event);
+        console.log('AuthProvider: Session exists?', !!session?.user);
         try {
           if (session?.user) {
+            console.log('AuthProvider: Fetching user profile on auth change for user ID:', session.user.id);
             const userProfile = await authService.getUserProfile(session.user.id);
+            console.log('AuthProvider: User profile retrieved on auth change:', userProfile?.id, userProfile?.role);
             setUser(userProfile);
           } else {
+            console.log('AuthProvider: No session, setting user to null');
             setUser(null);
           }
         } catch (error) {
