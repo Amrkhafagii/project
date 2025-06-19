@@ -53,8 +53,8 @@ export function LocationProvider({ children }: LocationProviderProps) {
       
       // Check if this is an expected web platform error
       const isWebPlatform = Platform.OS === 'web';
-      const isPositionUnavailableError = err instanceof Error && 
-        err.message.includes('Position update is unavailable');
+      const errorMessage = err instanceof Error ? err.message : (err && typeof err === 'object' && 'message' in err ? String(err.message) : '');
+      const isPositionUnavailableError = errorMessage.includes('Position update is unavailable');
       
       if (isWebPlatform && isPositionUnavailableError) {
         console.warn('Location error:', err);
