@@ -18,7 +18,7 @@ export const authService = {
 
     // Get user profile
     const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('*')
       .eq('id', authData.user.id)
       .single();
@@ -59,7 +59,7 @@ export const authService = {
 
     // Create user profile
     const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
+      .from('users')
       .insert({
         id: authData.user.id,
         email: authData.user.email!,
@@ -96,7 +96,7 @@ export const authService = {
 
   async getUserProfile(userId: string): Promise<User> {
     const { data: profile, error } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('*')
       .eq('id', userId)
       .single();
@@ -130,7 +130,7 @@ export const authService = {
     if (updates.email !== undefined) updateData.email = updates.email;
 
     const { data: profile, error } = await supabase
-      .from('user_profiles')
+      .from('users')
       .update(updateData)
       .eq('id', userId)
       .select()
