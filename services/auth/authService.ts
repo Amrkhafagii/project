@@ -21,7 +21,7 @@ export const authService = {
       .from('users')
       .select('*')
       .eq('id', authData.user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError) {
       throw new Error(`Profile fetch failed: ${profileError.message}`);
@@ -99,7 +99,7 @@ export const authService = {
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       throw new Error(`Profile fetch failed: ${error.message}`);
