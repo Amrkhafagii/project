@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Keep the splash screen visible while we fetch resources
+// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export function useFrameworkReady() {

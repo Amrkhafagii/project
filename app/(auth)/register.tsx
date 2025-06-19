@@ -13,27 +13,50 @@ import {
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/services/auth/AuthProvider';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword || !fullName) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signUp(email, password, {
+        full_name: fullName,
+        user_type: 'customer', // Default to customer
+      });
       
       if (error) {
-        Alert.alert('Login Failed', error.message || 'An error occurred during login');
+        Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
       } else {
-        // Navigation will be handled by the auth state change
-        router.replace('/(customer)');
+        Alert.alert(
+          'Success', 
+          'Account created successfully! Please check your email to verify your account.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/(auth)/login'),
+            },
+          ]
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred');
@@ -49,11 +72,22 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to your account</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join us today</Text>
         </View>
 
         <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Full Name</Text>
+            <TextInput
+              style={styles.input}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Enter your full name"
+              autoCapitalize="words"
+            />
+          </View>
+
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -79,21 +113,33 @@ export default function LoginScreen() {
             />
           </View>
 
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              style={styles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm your password"
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
+            onPress={handleRegister}
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Creating Account...' : 'Create Account'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/(auth)/register" asChild>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text style={styles.linkText}>Sign Up</Text>
+                <Text style={styles.linkText}>Sign In</Text>
               </TouchableOpacity>
             </Link>
           </View>
