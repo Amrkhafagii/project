@@ -42,3 +42,5 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
 });
+
+export default Card;

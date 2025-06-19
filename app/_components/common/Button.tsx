@@ -135,3 +135,5 @@ const styles = StyleSheet.create({
     fontSize: Layout.fontSize.lg,
   },
 });
+
+export default Button;

@@ -52,3 +52,5 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
 });
+
+export default EmptyState;
