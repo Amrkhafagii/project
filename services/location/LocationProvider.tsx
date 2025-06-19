@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 interface LocationContextType {
@@ -50,17 +49,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
       }
     } catch (err) {
       setError('Failed to get location');
-      
-      // Check if this is an expected web platform error
-      const isWebPlatform = Platform.OS === 'web';
-      const errorMessage = err instanceof Error ? err.message : (err && typeof err === 'object' && 'message' in err ? String(err.message) : '');
-      const isPositionUnavailableError = errorMessage.includes('Position update is unavailable');
-      
-      if (isWebPlatform && isPositionUnavailableError) {
-        console.warn('Location error:', err);
-      } else {
-        console.error('Location error:', err);
-      }
+      console.error('Location error:', err);
     } finally {
       setLoading(false);
     }

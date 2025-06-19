@@ -18,7 +18,6 @@ import { Colors, Layout } from '@/constants';
 import { getRoleDisplayName } from '@/utils/helpers';
 
 export default function RegisterScreen() {
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,12 +33,6 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     // Validation
-    const fullNameValidation = validateRequired(fullName, 'Full Name');
-    if (!fullNameValidation.isValid) {
-      Alert.alert('Error', fullNameValidation.message);
-      return;
-    }
-
     const emailValidation = validateRequired(email, 'Email');
     if (!emailValidation.isValid) {
       Alert.alert('Error', emailValidation.message);
@@ -64,12 +57,9 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      console.log(`Signing up user with role: ${selectedRole}, fullName: ${fullName}`);
-      await signUp(email, password, selectedRole, fullName);
-      console.log('Signup successful, redirecting...');
+      await signUp(email, password, selectedRole);
       // Navigation will be handled by the index.tsx based on user role
     } catch (error: any) {
-      console.error('Registration error:', error);
       Alert.alert('Registration Failed', error.message || 'An error occurred');
     } finally {
       setLoading(false);
@@ -87,17 +77,6 @@ export default function RegisterScreen() {
           <Text style={styles.subtitle}>Join our food delivery platform</Text>
 
           <View style={styles.form}>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your full name"
-                value={fullName}
-                onChangeText={setFullName}
-                editable={!loading}
-              />
-            </View>
-
             <Text style={styles.sectionTitle}>Account Type</Text>
             <View style={styles.roleContainer}>
               {roles.map((role) => (

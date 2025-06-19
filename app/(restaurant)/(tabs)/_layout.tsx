@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { AuthGuard } from '@/components/shared/AuthGuard';
 import { TabBarIcon } from '@/app/_components/navigation/TabBarIcon';
 import { Colors } from '@/constants';
-import { Chrome as Home, ClipboardList, ChartBar as BarChart3, Settings, User, Tag } from 'lucide-react-native';
+import { Home, ClipboardList, BarChart3, Settings, User } from 'lucide-react-native';
 
 export default function RestaurantTabLayout() {
   return (
@@ -30,7 +30,7 @@ export default function RestaurantTabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: 'Dashboard',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={Home} color={color} focused={focused} />
             ),
@@ -40,7 +40,6 @@ export default function RestaurantTabLayout() {
           name="orders"
           options={{
             title: 'Orders',
-            headerShown: true,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={ClipboardList} color={color} focused={focused} />
             ),
@@ -50,19 +49,8 @@ export default function RestaurantTabLayout() {
           name="analytics"
           options={{
             title: 'Analytics',
-            headerShown: true,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={BarChart3} color={color} focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="promotions"
-          options={{
-            title: 'Promotions',
-            headerShown: true,
-            tabBarIcon: ({ color, focused }) => (
-              <TabBarIcon Icon={Tag} color={color} focused={focused} />
             ),
           }}
         />
@@ -70,7 +58,6 @@ export default function RestaurantTabLayout() {
           name="menu"
           options={{
             title: 'Menu',
-            headerShown: true,
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={Settings} color={color} focused={focused} />
             ),
@@ -79,8 +66,7 @@ export default function RestaurantTabLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Account',
-            headerShown: true,
+            title: 'Profile',
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={User} color={color} focused={focused} />
             ),
