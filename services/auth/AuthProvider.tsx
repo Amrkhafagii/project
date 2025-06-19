@@ -89,8 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const user = await authService.signIn(email, password);
-      setUser(user);
+      await authService.signIn(email, password);
+      // User will be set by the onAuthStateChange listener
     } catch (error) {
       setLoading(false);
       throw error;
@@ -101,9 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('AuthProvider: Signing up user with role:', role);
     setLoading(true);
     try {
-      const user = await authService.signUp(email, password, role);
-      console.log('AuthProvider: User signed up successfully:', user?.id);
-      setUser(user);
+      await authService.signUp(email, password, role);
+      console.log('AuthProvider: User signed up successfully');
+      // User will be set by the onAuthStateChange listener
     } catch (error) {
       console.error('AuthProvider: Sign up error:', error);
       setLoading(false);
