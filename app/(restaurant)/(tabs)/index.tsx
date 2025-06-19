@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Bell, ChartBar as BarChart3, Users, TrendingUp, Package, Clock, DollarSign, MapPin, ChevronRight, AlertCircle, Tag, CalendarRange } from 'lucide-react-native';
+import { Bell, ChartBar as BarChart3, Users, TrendingUp, Package, Clock, DollarSign, MapPin, ChevronRight, CircleAlert as AlertCircle, Tag, CalendarRange } from 'lucide-react-native';
 import { useAuth } from '@/services/auth/authService';
 import { useRestaurantOrders } from '@/services/restaurant/restaurantOrderService';
 import { OrderStatusBadge } from '@/features/shared/components/OrderStatusBadge';
