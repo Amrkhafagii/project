@@ -29,9 +29,11 @@ export default function RoleSelectionScreen() {
     setLoading(true);
     try {
       await updateProfile({ role: selectedRole });
+      console.log('Updated user role to:', selectedRole);
       // Navigation will be handled by the index.tsx based on updated role
       router.replace('/');
     } catch (error: any) {
+      console.error('Error updating role:', error);
       Alert.alert('Error', error.message || 'Failed to update role');
     } finally {
       setLoading(false);

@@ -80,11 +80,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, role: UserRole) => {
+    console.log('AuthProvider: Signing up user with role:', role);
     setLoading(true);
     try {
       const user = await authService.signUp(email, password, role);
+      console.log('AuthProvider: User signed up successfully:', user?.id);
       setUser(user);
     } catch (error) {
+      console.error('AuthProvider: Sign up error:', error);
       setLoading(false);
       throw error;
     }
@@ -95,7 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authService.signOut();
       setUser(null);
+      console.log('AuthProvider: User signed out successfully');
     } catch (error) {
+      console.error('AuthProvider: Sign out error:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -105,11 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (updates: Partial<User>) => {
     if (!user) throw new Error('No user logged in');
     
+    console.log('AuthProvider: Updating profile for user:', user.id);
     setLoading(true);
     try {
       const updatedUser = await authService.updateProfile(user.id, updates);
+      console.log('AuthProvider: Profile updated successfully:', updatedUser?.id);
       setUser(updatedUser);
     } catch (error) {
+      console.error('AuthProvider: Update profile error:', error);
       throw error;
     } finally {
       setLoading(false);

@@ -18,6 +18,7 @@ import { Colors, Layout } from '@/constants';
 import { getRoleDisplayName } from '@/utils/helpers';
 
 export default function RegisterScreen() {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -57,7 +58,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await signUp(email, password, selectedRole);
+      await signUp(email, password, selectedRole, fullName);
       // Navigation will be handled by the index.tsx based on user role
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred');
@@ -77,6 +78,17 @@ export default function RegisterScreen() {
           <Text style={styles.subtitle}>Join our food delivery platform</Text>
 
           <View style={styles.form}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Full Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your full name"
+                value={fullName}
+                onChangeText={setFullName}
+                editable={!loading}
+              />
+            </View>
+
             <Text style={styles.sectionTitle}>Account Type</Text>
             <View style={styles.roleContainer}>
               {roles.map((role) => (
