@@ -17,17 +17,12 @@ export function useFrameworkReady() {
         console.warn(e);
       } finally {
         setIsReady(true);
+        await SplashScreen.hideAsync();
       }
     }
 
     prepare();
   }, []);
-
-  useEffect(() => {
-    if (isReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [isReady]);
 
   return isReady;
 }

@@ -1,26 +1,64 @@
-import { useEffect } from 'react';
-import { router } from 'expo-router';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { useAuth } from '@/services/auth/AuthProvider';
+import { router } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { Colors } from '@/constants';
 
-export default function Index() {
+export default function IndexScreen() {
   const { user, loading } = useAuth();
+  const isFrameworkReady = useFrameworkReady();
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        // User is authenticated, redirect to customer app
-        router.replace('/(customer)');
-      } else {
-        // User is not authenticated, redirect to login
-        router.replace('/(auth)/login');
-      }
-    }
-  }, [user, loading]);
+    if (!isFrameworkReady || loading) return;
 
+    if (!user) {
+      // No user, redirect to auth
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    // Check if user needs to complete role selection
+    if (!user.role) {
+      router.replace('/(auth)/role-selection');
+      return;
+    }
+
+    // Redirect based on user role
+    switch (user.role) {
+      case 'customer':
+        router.replace('/(customer)/(tabs)');
+        break;
+      case 'restaurant':
+        // Check if restaurant needs onboarding
+        if (!user.onboarded) {
+          router.replace('/(restaurant)/onboarding');
+        } else {
+          router.replace('/(restaurant)/(tabs)');
+        }
+        break;
+      case 'driver':
+        // Check if driver needs onboarding
+        if (!user.onboarded) {
+          router.replace('/(driver)/onboarding');
+        } else {
+          router.replace('/(driver)/(tabs)');
+        }
+        break;
+      default:
+        router.replace('/(auth)/login');
+    }
+  }, [user, loading, isFrameworkReady]);
+
+  // Show loading screen while determining route
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <ActivityIndicator size="large" />
+    <View style={{ 
+      flex: 1, 
+      justifyContent: 'center', 
+      alignItems: 'center',
+      backgroundColor: Colors.background 
+    }}>
+      <ActivityIndicator size="large" color={Colors.primary} />
     </View>
   );
 }

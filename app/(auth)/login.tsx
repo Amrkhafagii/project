@@ -10,8 +10,10 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Link, router } from 'expo-router';
-import { useAuth } from '@/services/auth/AuthProvider';
+import { router } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
+import { validateEmail, validateRequired } from '@/utils/validation';
+import { Colors, Layout } from '@/constants';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -20,23 +22,30 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    // Validation
+    const emailValidation = validateRequired(email, 'Email');
+    if (!emailValidation.isValid) {
+      Alert.alert('Error', emailValidation.message);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    const passwordValidation = validateRequired(password, 'Password');
+    if (!passwordValidation.isValid) {
+      Alert.alert('Error', passwordValidation.message);
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        Alert.alert('Login Failed', error.message || 'An error occurred during login');
-      } else {
-        // Navigation will be handled by the auth state change
-        router.replace('/(customer)');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
+      await signIn(email, password);
+      // Navigation will be handled by the index.tsx based on user role
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -48,54 +57,51 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
+        <View style={styles.content}>
           <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to your account</Text>
-        </View>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
 
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+          <View style={styles.form}>
             <TextInput
               style={styles.input}
+              placeholder="Email"
               value={email}
               onChangeText={setEmail}
-              placeholder="Enter your email"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!loading}
             />
-          </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
+              placeholder="Password"
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter your password"
               secureTextEntry
               autoCapitalize="none"
+              editable={!loading}
             />
-          </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Signing In...' : 'Sign In'}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Signing In...' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text style={styles.linkText}>Sign Up</Text>
-              </TouchableOpacity>
-            </Link>
+            <TouchableOpacity 
+              onPress={() => router.push('/(auth)/register')}
+              disabled={loading}
+            >
+              <Text style={styles.linkText}>Sign Up</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -106,75 +112,69 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Layout.spacing.lg,
   },
   title: {
-    fontSize: 32,
+    fontSize: Layout.fontSize.xxl,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    textAlign: 'center',
+    marginBottom: Layout.spacing.sm,
+    color: Colors.text,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: Layout.fontSize.md,
+    textAlign: 'center',
+    marginBottom: Layout.spacing.xxl,
+    color: Colors.textSecondary,
   },
   form: {
-    width: '100%',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    marginBottom: Layout.spacing.xl,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
+    borderColor: Colors.border,
+    borderRadius: Layout.borderRadius.md,
+    padding: Layout.spacing.md,
+    fontSize: Layout.fontSize.md,
+    marginBottom: Layout.spacing.md,
+    backgroundColor: Colors.surface,
+    color: Colors.text,
   },
   button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: Layout.borderRadius.md,
+    padding: Layout.spacing.md,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: Layout.spacing.sm,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: Colors.white,
+    fontSize: Layout.fontSize.md,
     fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 30,
   },
   footerText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: Layout.fontSize.md,
+    color: Colors.textSecondary,
   },
   linkText: {
-    fontSize: 16,
-    color: '#007AFF',
+    fontSize: Layout.fontSize.md,
+    color: Colors.primary,
     fontWeight: '600',
   },
 });
