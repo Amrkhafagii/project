@@ -45,7 +45,8 @@ export default function LoginScreen() {
       await signIn(email, password);
       // Navigation will be handled by the index.tsx based on user role
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'An error occurred');
+      console.error('Login error:', error);
+      Alert.alert('Login Failed', error.message || 'An error occurred during login');
     } finally {
       setLoading(false);
     }

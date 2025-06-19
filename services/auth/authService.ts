@@ -3,84 +3,152 @@ import { User, UserRole } from '@/types/auth';
 
 export const authService = {
   async signIn(email: string, password: string): Promise<User> {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) throw error;
-    if (!data.user) throw new Error('No user returned');
+    if (authError) {
+      throw new Error(authError.message);
+    }
 
-    const userProfile = await this.getUserProfile(data.user.id);
-    return userProfile;
+    if (!authData.user) {
+      throw new Error('Authentication failed');
+    }
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError) {
+      throw new Error(`Profile fetch failed: ${profileError.message}`);
+    }
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role as UserRole,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      phone: profile.phone,
+      createdAt: profile.created_at,
+      updatedAt: profile.updated_at,
+    };
   },
 
   async signUp(email: string, password: string, role: UserRole): Promise<User> {
-    const { data, error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    if (error) throw error;
-    if (!data.user) throw new Error('No user returned');
+    if (authError) {
+      throw new Error(authError.message);
+    }
+
+    if (!authData.user) {
+      throw new Error('Registration failed');
+    }
 
     // Create user profile
-    const userProfile = await this.createUserProfile(data.user.id, email, role);
-    return userProfile;
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: authData.user.id,
+        email: authData.user.email!,
+        role,
+        first_name: '',
+        last_name: '',
+        phone: null,
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      throw new Error(`Profile creation failed: ${profileError.message}`);
+    }
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role as UserRole,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      phone: profile.phone,
+      createdAt: profile.created_at,
+      updatedAt: profile.updated_at,
+    };
   },
 
   async signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      throw new Error(error.message);
+    }
   },
 
   async getUserProfile(userId: string): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (error) throw error;
-    if (!data) throw new Error('User profile not found');
+    if (error) {
+      throw new Error(`Profile fetch failed: ${error.message}`);
+    }
 
-    return data;
-  },
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
 
-  async createUserProfile(userId: string, email: string, role: UserRole): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        id: userId,
-        email,
-        role,
-        onboarded: role === 'customer', // Customers don't need onboarding
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!data) throw new Error('Failed to create user profile');
-
-    return data;
+    return {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role as UserRole,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      phone: profile.phone,
+      createdAt: profile.created_at,
+      updatedAt: profile.updated_at,
+    };
   },
 
   async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+    const updateData: any = {};
+    
+    if (updates.firstName !== undefined) updateData.first_name = updates.firstName;
+    if (updates.lastName !== undefined) updateData.last_name = updates.lastName;
+    if (updates.phone !== undefined) updateData.phone = updates.phone;
+    if (updates.email !== undefined) updateData.email = updates.email;
+
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .update(updateData)
       .eq('id', userId)
       .select()
       .single();
 
-    if (error) throw error;
-    if (!data) throw new Error('Failed to update user profile');
+    if (error) {
+      throw new Error(`Profile update failed: ${error.message}`);
+    }
 
-    return data;
+    return {
+      id: profile.id,
+      email: profile.email,
+      role: profile.role as UserRole,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      phone: profile.phone,
+      createdAt: profile.created_at,
+      updatedAt: profile.updated_at,
+    };
   },
 };

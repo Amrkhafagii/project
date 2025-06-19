@@ -20,31 +20,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        authService.getUserProfile(session.user.id)
-          .then(setUser)
-          .catch(() => setUser(null))
-          .finally(() => setLoading(false));
-      } else {
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const userProfile = await authService.getUserProfile(session.user.id);
+          setUser(userProfile);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+        setUser(null);
+      } finally {
         setLoading(false);
       }
-    });
+    };
+
+    getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          try {
+        try {
+          if (session?.user) {
             const userProfile = await authService.getUserProfile(session.user.id);
             setUser(userProfile);
-          } catch (error) {
+          } else {
             setUser(null);
           }
-        } else {
+        } catch (error) {
+          console.error('Error in auth state change:', error);
           setUser(null);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -57,9 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await authService.signIn(email, password);
       setUser(user);
     } catch (error) {
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
@@ -69,9 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await authService.signUp(email, password, role);
       setUser(user);
     } catch (error) {
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
