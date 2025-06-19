@@ -11,19 +11,25 @@ export function useFrameworkReady() {
     async function prepare() {
       try {
         // Pre-load fonts, make any API calls you need to do here
-        // For now, we'll just simulate some loading time
+        // await Font.loadAsync(Entypo.font);
+        
+        // Artificially delay for demo purposes
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (e) {
         console.warn(e);
       } finally {
-        // Tell the application to render
         setIsReady(true);
-        await SplashScreen.hideAsync();
       }
     }
 
     prepare();
   }, []);
+
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [isReady]);
 
   return isReady;
 }

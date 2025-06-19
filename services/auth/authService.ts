@@ -1,93 +1,81 @@
-import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { User, Session } from '@supabase/supabase-js';
+import { User, UserRole } from '@/types/auth';
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: any }>;
-  signOut: () => Promise<{ error: any }>;
-}
-
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  loading: true,
-  signIn: async () => ({ error: null }),
-  signUp: async () => ({ error: null }),
-  signOut: async () => ({ error: null }),
-});
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+class AuthService {
+  async signIn(email: string, password: string): Promise<User> {
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password
     });
-    return { error };
-  };
 
-  const signUp = async (email: string, password: string, fullName: string, role: string) => {
-    const { error } = await supabase.auth.signUp({
+    if (error) throw error;
+    if (!data.user) throw new Error('No user returned');
+
+    return this.getUserProfile(data.user.id);
+  }
+
+  async signUp(email: string, password: string, role: UserRole): Promise<User> {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-          role: role,
-        },
-      },
+        data: { role }
+      }
     });
-    return { error };
-  };
 
-  const signOut = async () => {
+    if (error) throw error;
+    if (!data.user) throw new Error('No user returned');
+
+    // Create user profile
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: data.user.id,
+        email: data.user.email,
+        role
+      });
+
+    if (profileError) throw profileError;
+
+    return this.getUserProfile(data.user.id);
+  }
+
+  async signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut();
-    return { error };
-  };
+    if (error) throw error;
+  }
 
-  const value = {
-    user,
-    session,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-  };
+  async getUserProfile(userId: string): Promise<User> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    if (error) throw error;
+    if (!data) throw new Error('User profile not found');
+
+    return data;
+  }
+
+  async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getCurrentUser(): Promise<User | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    return this.getUserProfile(user.id);
+  }
 }
+
+export const authService = new AuthService();

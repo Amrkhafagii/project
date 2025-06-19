@@ -1,40 +1,75 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+import { OrderStatus } from '@/types/common';
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '@/utils/constants';
 
 interface OrderStatusBadgeProps {
   status: OrderStatus;
+  size?: 'small' | 'medium';
 }
 
-const statusConfig = {
-  pending: { label: 'Pending', color: '#F59E0B', backgroundColor: '#FEF3C7' },
-  confirmed: { label: 'Confirmed', color: '#3B82F6', backgroundColor: '#DBEAFE' },
-  preparing: { label: 'Preparing', color: '#8B5CF6', backgroundColor: '#EDE9FE' },
-  ready: { label: 'Ready', color: '#10B981', backgroundColor: '#D1FAE5' },
-  delivered: { label: 'Delivered', color: '#059669', backgroundColor: '#A7F3D0' },
-  cancelled: { label: 'Cancelled', color: '#EF4444', backgroundColor: '#FEE2E2' },
-};
+export function OrderStatusBadge({ status, size = 'medium' }: OrderStatusBadgeProps) {
+  const getStatusConfig = (status: OrderStatus) => {
+    switch (status) {
+      case OrderStatus.PENDING:
+        return { color: COLORS.warning, text: 'Pending' };
+      case OrderStatus.CONFIRMED:
+        return { color: COLORS.primary, text: 'Confirmed' };
+      case OrderStatus.PREPARING:
+        return { color: '#FF9500', text: 'Preparing' };
+      case OrderStatus.READY:
+        return { color: COLORS.success, text: 'Ready' };
+      case OrderStatus.PICKED_UP:
+        return { color: '#5856D6', text: 'Picked Up' };
+      case OrderStatus.DELIVERED:
+        return { color: COLORS.success, text: 'Delivered' };
+      case OrderStatus.CANCELLED:
+        return { color: COLORS.error, text: 'Cancelled' };
+      default:
+        return { color: COLORS.textSecondary, text: 'Unknown' };
+    }
+  };
 
-export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = getStatusConfig(status);
 
   return (
-    <View style={[styles.badge, { backgroundColor: config.backgroundColor }]}>
-      <Text style={[styles.text, { color: config.color }]}>{config.label}</Text>
+    <View style={[
+      styles.badge,
+      styles[size],
+      { backgroundColor: `${config.color}20` }
+    ]}>
+      <Text style={[
+        styles.text,
+        styles[`${size}Text`],
+        { color: config.color }
+      ]}>
+        {config.text}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  small: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  medium: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
   },
   text: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: TYPOGRAPHY.weights.medium,
+  },
+  smallText: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+  },
+  mediumText: {
+    fontSize: TYPOGRAPHY.sizes.sm,
   },
 });

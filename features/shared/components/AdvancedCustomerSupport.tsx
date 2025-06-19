@@ -1,306 +1,163 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { MessageCircle, Phone, Mail, Send } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { MessageCircle, Phone, Mail, HelpCircle } from 'lucide-react-native';
+import { Card } from '@/components/ui';
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '@/utils/constants';
 
-interface SupportTicket {
+interface SupportOption {
   id: string;
-  subject: string;
-  status: 'open' | 'pending' | 'resolved';
-  createdAt: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  action: () => void;
 }
 
 export function AdvancedCustomerSupport() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'tickets' | 'contact'>('chat');
-  const [message, setMessage] = useState('');
-  const [tickets] = useState<SupportTicket[]>([
+  const [selectedCategory, setSelectedCategory] = useState<string>('general');
+
+  const supportOptions: SupportOption[] = [
     {
-      id: '1',
-      subject: 'Order delivery issue',
-      status: 'pending',
-      createdAt: '2024-01-15',
+      id: 'chat',
+      title: 'Live Chat',
+      description: 'Chat with our support team',
+      icon: <MessageCircle size={24} color={COLORS.primary} />,
+      action: () => console.log('Open chat'),
     },
     {
-      id: '2',
-      subject: 'Payment not processed',
-      status: 'resolved',
-      createdAt: '2024-01-10',
+      id: 'phone',
+      title: 'Phone Support',
+      description: 'Call us at 1-800-ZENITH',
+      icon: <Phone size={24} color={COLORS.primary} />,
+      action: () => console.log('Make call'),
     },
-  ]);
+    {
+      id: 'email',
+      title: 'Email Support',
+      description: 'Send us an email',
+      icon: <Mail size={24} color={COLORS.primary} />,
+      action: () => console.log('Send email'),
+    },
+    {
+      id: 'faq',
+      title: 'FAQ',
+      description: 'Find answers to common questions',
+      icon: <HelpCircle size={24} color={COLORS.primary} />,
+      action: () => console.log('Open FAQ'),
+    },
+  ];
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      Alert.alert('Message Sent', 'Your message has been sent to our support team.');
-      setMessage('');
-    }
-  };
-
-  const renderChatTab = () => (
-    <View style={styles.chatContainer}>
-      <ScrollView style={styles.chatMessages}>
-        <View style={styles.supportMessage}>
-          <Text style={styles.messageText}>
-            Hi! How can I help you today? I'm here to assist with any questions about your orders, account, or our services.
-          </Text>
-          <Text style={styles.messageTime}>2:30 PM</Text>
-        </View>
-      </ScrollView>
-      <View style={styles.chatInput}>
-        <TextInput
-          style={styles.messageInput}
-          value={message}
-          onChangeText={setMessage}
-          placeholder="Type your message..."
-          multiline
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Send size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderTicketsTab = () => (
-    <ScrollView style={styles.ticketsContainer}>
-      {tickets.map((ticket) => (
-        <TouchableOpacity key={ticket.id} style={styles.ticketCard}>
-          <View style={styles.ticketHeader}>
-            <Text style={styles.ticketSubject}>{ticket.subject}</Text>
-            <View style={[
-              styles.statusBadge,
-              { backgroundColor: ticket.status === 'resolved' ? '#D1FAE5' : '#FEF3C7' }
-            ]}>
-              <Text style={[
-                styles.statusText,
-                { color: ticket.status === 'resolved' ? '#059669' : '#D97706' }
-              ]}>
-                {ticket.status}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.ticketDate}>Created: {ticket.createdAt}</Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-
-  const renderContactTab = () => (
-    <View style={styles.contactContainer}>
-      <TouchableOpacity style={styles.contactOption}>
-        <Phone size={24} color="#10B981" />
-        <View style={styles.contactInfo}>
-          <Text style={styles.contactTitle}>Call Us</Text>
-          <Text style={styles.contactDetail}>+1 (555) 123-4567</Text>
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.contactOption}>
-        <Mail size={24} color="#10B981" />
-        <View style={styles.contactInfo}>
-          <Text style={styles.contactTitle}>Email Support</Text>
-          <Text style={styles.contactDetail}>support@zenith.com</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+  const categories = [
+    { id: 'general', title: 'General' },
+    { id: 'orders', title: 'Orders' },
+    { id: 'payments', title: 'Payments' },
+    { id: 'account', title: 'Account' },
+  ];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'chat' && styles.activeTab]}
-          onPress={() => setActiveTab('chat')}
-        >
-          <MessageCircle size={20} color={activeTab === 'chat' ? '#10B981' : '#6B7280'} />
-          <Text style={[styles.tabText, activeTab === 'chat' && styles.activeTabText]}>
-            Chat
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'tickets' && styles.activeTab]}
-          onPress={() => setActiveTab('tickets')}
-        >
-          <Text style={[styles.tabText, activeTab === 'tickets' && styles.activeTabText]}>
-            Tickets
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'contact' && styles.activeTab]}
-          onPress={() => setActiveTab('contact')}
-        >
-          <Text style={[styles.tabText, activeTab === 'contact' && styles.activeTabText]}>
-            Contact
-          </Text>
-        </TouchableOpacity>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Customer Support</Text>
+      
+      <View style={styles.categoryContainer}>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.categoryButton,
+              selectedCategory === category.id && styles.categoryButtonActive
+            ]}
+            onPress={() => setSelectedCategory(category.id)}
+          >
+            <Text style={[
+              styles.categoryText,
+              selectedCategory === category.id && styles.categoryTextActive
+            ]}>
+              {category.title}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <View style={styles.content}>
-        {activeTab === 'chat' && renderChatTab()}
-        {activeTab === 'tickets' && renderTicketsTab()}
-        {activeTab === 'contact' && renderContactTab()}
+      <View style={styles.optionsContainer}>
+        {supportOptions.map((option) => (
+          <Card key={option.id} style={styles.optionCard}>
+            <TouchableOpacity
+              style={styles.optionContent}
+              onPress={option.action}
+            >
+              <View style={styles.optionIcon}>
+                {option.icon}
+              </View>
+              <View style={styles.optionText}>
+                <Text style={styles.optionTitle}>{option.title}</Text>
+                <Text style={styles.optionDescription}>{option.description}</Text>
+              </View>
+            </TouchableOpacity>
+          </Card>
+        ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: COLORS.background,
+    padding: SPACING.md,
   },
-  tabBar: {
+  title: {
+    fontSize: TYPOGRAPHY.sizes.xxl,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.text,
+    marginBottom: SPACING.lg,
+  },
+  categoryContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginBottom: SPACING.lg,
   },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+  categoryButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surface,
+    marginRight: SPACING.sm,
   },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#10B981',
+  categoryButtonActive: {
+    backgroundColor: COLORS.primary,
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginLeft: 8,
+  categoryText: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    color: COLORS.textSecondary,
   },
-  activeTabText: {
-    color: '#10B981',
+  categoryTextActive: {
+    color: COLORS.surface,
   },
-  content: {
-    flex: 1,
+  optionsContainer: {
+    gap: SPACING.md,
   },
-  chatContainer: {
-    flex: 1,
+  optionCard: {
+    padding: 0,
   },
-  chatMessages: {
-    flex: 1,
-    padding: 16,
-  },
-  supportMessage: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-    maxWidth: '80%',
-  },
-  messageText: {
-    fontSize: 14,
-    color: '#111827',
-    lineHeight: 20,
-  },
-  messageTime: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  chatInput: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    alignItems: 'flex-end',
-  },
-  messageInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 12,
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: '#10B981',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ticketsContainer: {
-    padding: 16,
-  },
-  ticketCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  ticketHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  ticketSubject: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  ticketDate: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  contactContainer: {
-    padding: 16,
-  },
-  contactOption: {
+  optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: SPACING.md,
   },
-  contactInfo: {
-    marginLeft: 16,
+  optionIcon: {
+    marginRight: SPACING.md,
   },
-  contactTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+  optionText: {
+    flex: 1,
   },
-  contactDetail: {
-    fontSize: 14,
-    color: '#6B7280',
+  optionTitle: {
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+  optionDescription: {
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
   },
 });
