@@ -193,6 +193,9 @@ export const authService = {
         preferences: profile.preferences || {},
         fitnessProfile: profile.fitness_profile || undefined,
       };
+    } catch (error) {
+      console.error(`[Auth] Error fetching user profile for ${userId}:`, error);
+      throw error; // Re-throw the error to be handled by the caller
     }
   },
 
