@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, Platform, StyleSheet } from 'react-native';
 import { router, SplashScreen } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants';
@@ -19,9 +19,14 @@ export default function IndexScreen() {
   
   const { user, loading } = auth;
   const isFrameworkReady = useFrameworkReady();
+  
+  const [networkError, setNetworkError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isFrameworkReady || loading) return;
+    
+    // Clear any previous network errors when auth state changes
+    setNetworkError(null);
 
     if (!user) {
       // No user, redirect to welcome screen
@@ -97,16 +102,44 @@ export default function IndexScreen() {
         }, 100);
     }
   }, [user, loading, isFrameworkReady]);
+  
+  // Handle unexpected errors during auth/navigation
+  useEffect(() => {
+    const handleNetworkError = (error: any) => {
+      console.error('Network error during navigation:', error);
+      setNetworkError('Network connection issue. Please check your connection and try again.');
+    };
+    
+    window.addEventListener('error', handleNetworkError);
+    
+    return () => {
+      window.removeEventListener('error', handleNetworkError);
+    };
+  }, []);
 
   // Show loading screen while determining route
   return (
-    <View style={{
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: Colors.background
-    }}> 
+    <View style={styles.container}>
       {loading && <ActivityIndicator size="large" color={Colors.primary} />}
+      
+      {networkError ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Connection Error</Text>
+          <Text style={styles.errorMessage}>{networkError}</Text>
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => {
+                setNetworkError(null);
+                router.replace('/');
+              }}
+            >
+              <Text style={styles.retryText}>Retry Connection</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
+      
       {!loading && (
         <Text style={{ color: Colors.textSecondary, marginTop: 10 }}>
           Initializing app...
@@ -115,3 +148,39 @@ export default function IndexScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    maxWidth: 300,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.error,
+    marginBottom: 10,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: Colors.white,
+    fontWeight: '600',
+  }
+});

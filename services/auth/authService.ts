@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import { User, UserRole, UserProfile } from '@/types/auth';
+import { Platform } from 'react-native';
 
 export const authService = {
   async signIn(email: string, password: string): Promise<User> {
+    console.log(`[Auth] Signing in user: ${email} on platform: ${Platform.OS}`);
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -11,10 +13,13 @@ export const authService = {
     if (authError) {
       throw new Error(authError.message);
     }
-
-    if (!authData.user) {
-      throw new Error('Authentication failed');
+    
+    if (!authData?.user) {
+      console.error('[Auth] Authentication succeeded but no user data returned');
+      throw new Error('Authentication failed: No user data returned');
     }
+
+    console.log(`[Auth] Auth successful, fetching profile for user: ${authData.user.id}`);
 
     // Get user profile
     const { data: profile, error: profileError } = await supabase 
@@ -28,9 +33,11 @@ export const authService = {
     }
 
     if (!profile) {
+      console.error('[Auth] No profile found for authenticated user');
       throw new Error('User profile not found');
     }
 
+    console.log('[Auth] Login complete, returning user data');
     return {
       id: authData.user.id,
       email: authData.user.email!,
@@ -105,10 +112,12 @@ export const authService = {
       .single();
 
     if (error) {
+      console.error(`[Auth] Profile fetch failed for user ${userId}:`, error.message);
       throw new Error(`Profile fetch failed: ${error.message}`);
     }
 
     if (!profile) {
+      console.error(`[Auth] No profile found for user ${userId}`);
       throw new Error('User profile not found');
     }
 
@@ -175,11 +184,15 @@ export const authService = {
   },
 
   async resetPassword(email: string): Promise<void> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://zenith-meal-delivery.com/reset-password',
-    });
+    // Use a dynamic redirect URL based on the platform
+    const redirectUrl = Platform.OS === 'web' 
+      ? 'https://zenith-meal-delivery.com/reset-password'
+      : 'zenith-meal-delivery://reset-password';
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
     
     if (error) {
+      console.error(`[Auth] Password reset failed for ${email}:`, error.message);
       throw new Error(`Password reset failed: ${error.message}`);
     }
   },

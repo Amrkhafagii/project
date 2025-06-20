@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authService } from './authService';
+import { Platform, Alert } from 'react-native';
 import { User, UserRole } from '@/types/auth';
 
 interface AuthContextType {
@@ -24,9 +25,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log(`[AuthProvider] Initial session check: ${session ? 'Found' : 'Not found'}`);
         if (session?.user) {
-          const userProfile = await authService.getUserProfile(session.user.id);
-          setUser(userProfile);
+          try {
+            const userProfile = await authService.getUserProfile(session.user.id);
+            setUser(userProfile);
+          } catch (profileError) {
+            console.error('[AuthProvider] Error fetching user profile:', profileError);
+            setUser(null);
+          }
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
@@ -42,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
+          console.log(`[AuthProvider] Auth state changed: ${event}`);
           if (session?.user) {
             const userProfile = await authService.getUserProfile(session.user.id);
             setUser(userProfile);
@@ -61,12 +69,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string): Promise<{ error?: Error }> => {
+    console.log(`[AuthProvider] SignIn attempt for: ${email}`);
     setLoading(true);
     try {
       const user = await authService.signIn(email, password);
       setUser(user);
+      console.log(`[AuthProvider] SignIn successful for: ${email}`);
       return {};
     } catch (error) {
+      console.error(`[AuthProvider] SignIn failed for ${email}:`, error);
+      
+      // Show a more helpful error on iOS/Android
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          'Login Failed',
+          error instanceof Error 
+            ? error.message 
+            : 'Connection failed. Please check your network and try again.'
+        );
+      }
+      
       setLoading(false);
       return { error: error instanceof Error ? error : new Error(String(error)) };
     }
@@ -89,8 +111,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authService.signOut();
       setUser(null);
+      console.log('[AuthProvider] SignOut successful');
       return {};
     } catch (error) {
+      console.error('[AuthProvider] SignOut failed:', error);
       return { error: error instanceof Error ? error : new Error(String(error)) };
     } finally {
       setLoading(false);
