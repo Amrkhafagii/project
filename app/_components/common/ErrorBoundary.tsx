@@ -1,20 +1,22 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '@/constants';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Colors, Layout } from '@/constants';
+import { AlertTriangle, RefreshCw } from 'lucide-react-native';
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -25,21 +27,37 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
+  handleRetry = () => {
+    this.setState({ hasError: false, error: undefined });
   };
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>Oops! Something went wrong</Text>
-          <Text style={styles.message}>
-            {this.state.error?.message || 'An unexpected error occurred'}
-          </Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
+          <View style={styles.content}>
+            <AlertTriangle size={64} color={Colors.error} />
+            <Text style={styles.title}>Something went wrong</Text>
+            <Text style={styles.message}>
+              We're sorry, but something unexpected happened. Please try again.
+            </Text>
+            
+            {__DEV__ && this.state.error && (
+              <View style={styles.errorDetails}>
+                <Text style={styles.errorTitle}>Error Details:</Text>
+                <Text style={styles.errorText}>{this.state.error.message}</Text>
+              </View>
+            )}
+            
+            <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
+              <RefreshCw size={20} color={Colors.white} />
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -51,31 +69,62 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: Colors.background,
+    padding: Layout.spacing.xl,
+  },
+  content: {
+    alignItems: 'center',
+    maxWidth: 300,
   },
   title: {
-    fontSize: 20,
+    fontSize: Layout.fontSize.xl,
     fontWeight: 'bold',
-    color: Colors.error,
-    marginBottom: 10,
+    color: Colors.text,
+    marginTop: Layout.spacing.lg,
+    marginBottom: Layout.spacing.md,
+    textAlign: 'center',
   },
   message: {
-    fontSize: 14,
+    fontSize: Layout.fontSize.md,
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 20,
+    lineHeight: 22,
+    marginBottom: Layout.spacing.xl,
   },
-  button: {
+  errorDetails: {
+    backgroundColor: Colors.gray[100],
+    padding: Layout.spacing.md,
+    borderRadius: Layout.borderRadius.md,
+    marginBottom: Layout.spacing.xl,
+    width: '100%',
+  },
+  errorTitle: {
+    fontSize: Layout.fontSize.sm,
+    fontWeight: '600',
+    color: Colors.error,
+    marginBottom: Layout.spacing.sm,
+  },
+  errorText: {
+    fontSize: Layout.fontSize.xs,
+    color: Colors.textSecondary,
+    fontFamily: 'monospace',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingHorizontal: Layout.spacing.lg,
+    paddingVertical: Layout.spacing.md,
+    borderRadius: Layout.borderRadius.md,
+    gap: Layout.spacing.sm,
   },
-  buttonText: {
+  retryButtonText: {
     color: Colors.white,
+    fontSize: Layout.fontSize.md,
     fontWeight: '600',
   },
 });
+
+export default ErrorBoundary;
