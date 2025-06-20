@@ -13,15 +13,15 @@ import {
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
-import { validateEmail, validatePassword, validateRequired } from '@/utils/validation';
+import { validateEmail, validatePassword, validateRequired, validateName } from '@/utils/validation';
 import { Colors, Layout } from '@/constants';
-import { getRoleDisplayName } from '@/utils/helpers';
+import { Button } from '@/app/_components/common/Button';
 
 export default function RegisterScreen() {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('customer');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
@@ -33,6 +33,12 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     // Validation
+    const nameValidation = validateName(fullName);
+    if (!nameValidation.isValid) {
+      Alert.alert('Error', nameValidation.message);
+      return;
+    }
+
     const emailValidation = validateRequired(email, 'Email');
     if (!emailValidation.isValid) {
       Alert.alert('Error', emailValidation.message);
@@ -57,7 +63,10 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await signUp(email, password, selectedRole);
+      // Sign up without role - role will be selected in the next step
+      await signUp(email, password, {
+        fullName, 
+      });
       // Navigation will be handled by the index.tsx based on user role
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred');
@@ -77,33 +86,15 @@ export default function RegisterScreen() {
           <Text style={styles.subtitle}>Join our food delivery platform</Text>
 
           <View style={styles.form}>
-            <Text style={styles.sectionTitle}>Account Type</Text>
-            <View style={styles.roleContainer}>
-              {roles.map((role) => (
-                <TouchableOpacity
-                  key={role.value}
-                  style={[
-                    styles.roleOption,
-                    selectedRole === role.value && styles.roleOptionSelected,
-                  ]}
-                  onPress={() => setSelectedRole(role.value)}
-                  disabled={loading}
-                >
-                  <Text style={[
-                    styles.roleLabel,
-                    selectedRole === role.value && styles.roleLabelSelected,
-                  ]}>
-                    {role.label}
-                  </Text>
-                  <Text style={[
-                    styles.roleDescription,
-                    selectedRole === role.value && styles.roleDescriptionSelected,
-                  ]}>
-                    {role.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              value={fullName}
+              onChangeText={setFullName}
+              autoCapitalize="words"
+              autoCorrect={false}
+              editable={!loading}
+            />
 
             <TextInput
               style={styles.input}
@@ -136,15 +127,15 @@ export default function RegisterScreen() {
               editable={!loading}
             />
 
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+            <Button
+              title={loading ? 'Creating Account...' : 'Create Account'}
               onPress={handleRegister}
               disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Text>
-            </TouchableOpacity>
+              fullWidth
+              size="large"
+              loading={loading}
+              style={styles.button}
+            />
           </View>
 
           <View style={styles.footer}>
@@ -191,44 +182,8 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: Layout.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: Layout.fontSize.lg,
-    fontWeight: '600',
-    marginBottom: Layout.spacing.md,
-    color: Colors.text,
-  },
-  roleContainer: {
-    marginBottom: Layout.spacing.lg,
-  },
-  roleOption: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Layout.borderRadius.md,
-    padding: Layout.spacing.md,
-    marginBottom: Layout.spacing.sm,
-    backgroundColor: Colors.surface,
-  },
-  roleOptionSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: '#f0f8ff',
-  },
-  roleLabel: {
-    fontSize: Layout.fontSize.md,
-    fontWeight: '600',
-    marginBottom: Layout.spacing.xs,
-    color: Colors.text,
-  },
-  roleLabelSelected: {
-    color: Colors.primary,
-  },
-  roleDescription: {
-    fontSize: Layout.fontSize.sm,
-    color: Colors.textSecondary,
-  },
-  roleDescriptionSelected: {
-    color: '#0056b3',
-  },
+    width: '100%',
+    gap: Layout.spacing.md,
   input: {
     borderWidth: 1,
     borderColor: Colors.border,
@@ -240,19 +195,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   button: {
-    backgroundColor: Colors.primary,
-    borderRadius: Layout.borderRadius.md,
-    padding: Layout.spacing.md,
-    alignItems: 'center',
-    marginTop: Layout.spacing.sm,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: Colors.white,
-    fontSize: Layout.fontSize.md,
-    fontWeight: '600',
+    marginTop: Layout.spacing.md,
   },
   footer: {
     flexDirection: 'row',

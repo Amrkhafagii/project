@@ -45,11 +45,19 @@ export default function RoleSelectionScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Welcome to Zenith!</Text>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Join Zenith!</Text>
             <Text style={styles.subtitle}>
-              Let's set up your account to get you started
+              Select your role to customize your experience
             </Text>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user?.email?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </View>
+              <Text style={styles.emailText}>{user?.email}</Text>
+            </View>
           </View>
 
           <RoleSelector
@@ -67,7 +75,7 @@ export default function RoleSelectionScreen() {
               size="large"
             />
             
-            <Text style={styles.footerNote}>
+            <Text style={styles.footerNote} numberOfLines={2}>
               You can change this later in your profile settings
             </Text>
           </View>
@@ -88,12 +96,34 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Layout.spacing.lg,
-    paddingVertical: Layout.spacing.xl,
+    paddingVertical: Layout.spacing.lg,
   },
-  header: {
+  headerContainer: {
     alignItems: 'center',
     marginBottom: Layout.spacing.xl,
-    paddingTop: Layout.spacing.xxl,
+    paddingTop: Layout.spacing.lg,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginTop: Layout.spacing.lg,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Layout.spacing.sm,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  emailText: {
+    fontSize: Layout.fontSize.sm,
+    color: Colors.textSecondary,
   },
   title: {
     fontSize: Layout.fontSize.xxl,
