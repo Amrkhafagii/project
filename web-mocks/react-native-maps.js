@@ -1,78 +1,74 @@
-// Mock implementation of react-native-maps for web platform
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 
-// Mock MapView component
-export const MapView = ({ children, style, ...props }) => {
+// Mock implementation of MapView
+const MapView = ({ style, children, ...props }) => {
   return (
-    <View style={[styles.mapContainer, style]} {...props}>
-      <Text style={styles.mapText}>Map View (Web)</Text>
+    <View 
+      style={[
+        { 
+          backgroundColor: '#e5e5e5', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: 200,
+        },
+        style
+      ]}
+      {...props}
+    >
+      <Text style={{ color: '#666', position: 'absolute' }}>Map View</Text>
       {children}
     </View>
   );
 };
 
-// Mock Marker component
-export const Marker = ({ title, description, coordinate, ...props }) => {
+// Mock implementation of Marker
+const Marker = ({ title, description, coordinate, ...props }) => {
   return (
-    <View style={styles.marker}>
-      <Text style={styles.markerText}>📍</Text>
-      {title && <Text style={styles.markerTitle}>{title}</Text>}
-      }
+    <View
+      style={{
+        position: 'absolute',
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        borderRadius: 20,
+        padding: 8,
+      }}
+      {...props}
+    >
+      <Text>📍</Text>
+      {title && <Text style={{ fontSize: 10 }}>{title}</Text>}
     </View>
   );
 };
 
-// Mock Polyline component
-export const Polyline = ({ coordinates, ...props }) => {
-  return <View style={styles.polyline} />;
+// Mock implementation of Polyline
+const Polyline = () => <View />;
+
+// Mock implementation of Circle
+const Circle = () => <View />;
+
+// Constants
+const PROVIDER_GOOGLE = 'google';
+const PROVIDER_DEFAULT = 'default';
+
+// Export all components and constants
+export default {
+  default: MapView,
+  MapView,
+  Marker,
+  Polyline,
+  Circle,
+  PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
 };
 
-// Mock Circle component
-export const Circle = ({ center, radius, ...props }) => {
-  return <View style={styles.circle} />;
+// Also export them individually
+export {
+  MapView,
+  Marker,
+  Polyline,
+  Circle,
+  PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
 };
-
-// Mock constants
-export const PROVIDER_GOOGLE = 'google';
-export const PROVIDER_DEFAULT = 'default';
-
-const styles = StyleSheet.create({
-  mapContainer: {
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 200,
-  },
-  mapText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  marker: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markerText: {
-    fontSize: 20,
-  },
-  markerTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  polyline: {
-    height: 2,
-    backgroundColor: '#007AFF',
-  },
-  circle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0, 122, 255, 0.3)',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-});
-
-export default MapView;
