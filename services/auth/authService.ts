@@ -120,10 +120,6 @@ export const authService = {
       // Always reset the auth operation flag when completed
       authOperationInProgress = false;
     }
-    } finally {
-      // Always reset the auth operation flag when completed
-      authOperationInProgress = false;
-    }
   },
 
   async signOut(): Promise<void> {
