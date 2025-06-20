@@ -79,6 +79,7 @@ export const authService = {
         email,
         password,
       });
+    }
 
     if (!profile) {
       if (authError) {

@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +25,10 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     // Validation
+    if (loading) {
+      return; // Prevent multiple submissions
+    }
+    
     const emailValidation = validateRequired(email, 'Email');
     if (!emailValidation.isValid) {
       Alert.alert('Error', emailValidation.message);
@@ -44,9 +49,14 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email, password);
+      // Clear inputs for security
+      setEmail('');
+      setPassword('');
       // Navigation will be handled by the index.tsx based on user role
     } catch (error) {
-      Alert.alert('Login Failed', error instanceof Error ? error.message : 'An error occurred');
+      // Error will be handled by the auth provider, no need to show another alert here
+      console.log('Login error caught in component:', 
+        error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -95,7 +105,7 @@ export default function LoginScreen() {
             <Button
               title={loading ? 'Signing In...' : 'Sign In'}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || !email || !password}
               loading={loading}
               fullWidth
               size="large"
@@ -106,8 +116,8 @@ export default function LoginScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <TouchableOpacity 
-              onPress={() => router.push('/(auth)/register')}
               disabled={loading}
+              onPress={() => router.push('/(auth)/register')}
             >
               <Text style={styles.linkText}>Sign Up</Text>
             </TouchableOpacity>
