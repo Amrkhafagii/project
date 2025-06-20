@@ -121,7 +121,7 @@ export const authService = {
       authOperationInProgress = false;
     }
   },
-
+//
   async signOut(): Promise<void> {
     try {
       // Guard against infinite recursion
