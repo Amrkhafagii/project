@@ -1,23 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { User, UserRole } from '@/types/auth';
-import { Platform } from 'react-native';
 
 class AuthService {
   async signIn(email: string, password: string): Promise<User> {
     try {
       console.log(`[AuthService] Attempting sign in for: ${email}`);
       
-      // Test network connectivity first
-      if (Platform.OS !== 'web') {
-        try {
-          const testResponse = await fetch('https://www.google.com', { method: 'HEAD' });
-          console.log('[AuthService] Network connectivity test passed');
-        } catch (netError) {
-          console.error('[AuthService] Network connectivity test failed:', netError);
-          throw new Error('No internet connection. Please check your network settings.');
-        }
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -29,10 +17,10 @@ class AuthService {
         // Provide more specific error messages
         if (error.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password');
-        } else if (error.message.includes('Network request failed')) {
-          throw new Error('Unable to connect to server. Please check your internet connection.');
         } else if (error.message.includes('Email not confirmed')) {
           throw new Error('Please verify your email before signing in');
+        } else if (error.message.includes('Network request failed')) {
+          throw new Error('Unable to connect to server. Please check your internet connection.');
         }
         
         throw new Error(error.message || 'Authentication failed');
@@ -52,8 +40,8 @@ class AuthService {
       
       // Re-throw with more context if needed
       if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
-          throw new Error('Network connection failed. Please check your internet connection and try again.');
+        if (error.message.includes('fetch') || error.message.includes('Network request failed')) {
+          throw new Error('Unable to connect to authentication server. Please check your internet connection.');
         }
         throw error;
       }
