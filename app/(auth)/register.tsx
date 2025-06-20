@@ -22,6 +22,8 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('customer');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
@@ -61,13 +63,24 @@ export default function RegisterScreen() {
       return;
     }
 
+    const phoneValidation = validateRequired(phoneNumber, 'Phone number');
+    if (!phoneValidation.isValid) {
+      Alert.alert('Error', phoneValidation.message);
+      return;
+    }
+
     setLoading(true);
     try {
-      // Sign up without role - role will be selected in the next step
-      await signUp(email, password, {
-        fullName, 
+      const { error } = await signUp(email, password, {
+        fullName,
+        phoneNumber,
+        role: selectedRole,
       });
-      // Navigation will be handled by the index.tsx based on user role
+      
+      if (error) {
+        Alert.alert('Registration Failed', error.message || 'An error occurred');
+      }
+      // Navigation will be handled by the auth state change
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred');
     } finally {
@@ -109,6 +122,16 @@ export default function RegisterScreen() {
 
             <TextInput
               style={styles.input}
+              placeholder="Phone Number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              autoCorrect={false}
+              editable={!loading}
+            />
+
+            <TextInput
+              style={styles.input}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
@@ -126,6 +149,44 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               editable={!loading}
             />
+
+            <View style={styles.roleSection}>
+              <Text style={styles.roleTitle}>Select Your Role</Text>
+              {roles.map((role) => (
+                <TouchableOpacity
+                  key={role.value}
+                  style={[
+                    styles.roleOption,
+                    selectedRole === role.value && styles.roleOptionSelected,
+                  ]}
+                  onPress={() => setSelectedRole(role.value)}
+                  disabled={loading}
+                >
+                  <View style={styles.roleContent}>
+                    <Text style={[
+                      styles.roleLabel,
+                      selectedRole === role.value && styles.roleLabelSelected,
+                    ]}>
+                      {role.label}
+                    </Text>
+                    <Text style={[
+                      styles.roleDescription,
+                      selectedRole === role.value && styles.roleDescriptionSelected,
+                    ]}>
+                      {role.description}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.radioButton,
+                    selectedRole === role.value && styles.radioButtonSelected,
+                  ]}>
+                    {selectedRole === role.value && (
+                      <View style={styles.radioButtonInner} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <Button
               title={loading ? 'Creating Account...' : 'Create Account'}
@@ -183,7 +244,6 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: Layout.spacing.lg,
     width: '100%',
-    gap: Layout.spacing.md,
   },
   input: {
     borderWidth: 1,
@@ -194,6 +254,68 @@ const styles = StyleSheet.create({
     marginBottom: Layout.spacing.md,
     backgroundColor: Colors.surface,
     color: Colors.text,
+  },
+  roleSection: {
+    marginVertical: Layout.spacing.lg,
+  },
+  roleTitle: {
+    fontSize: Layout.fontSize.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: Layout.spacing.md,
+  },
+  roleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Layout.spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Layout.borderRadius.md,
+    marginBottom: Layout.spacing.sm,
+    backgroundColor: Colors.surface,
+  },
+  roleOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  roleContent: {
+    flex: 1,
+  },
+  roleLabel: {
+    fontSize: Layout.fontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: Layout.spacing.xs,
+  },
+  roleLabelSelected: {
+    color: Colors.primary,
+  },
+  roleDescription: {
+    fontSize: Layout.fontSize.sm,
+    color: Colors.textSecondary,
+  },
+  roleDescriptionSelected: {
+    color: Colors.primary,
+  },
+  radioButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: Layout.spacing.md,
+  },
+  radioButtonSelected: {
+    borderColor: Colors.primary,
+  },
+  radioButtonInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.primary,
   },
   button: {
     marginTop: Layout.spacing.md,

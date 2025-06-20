@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user && mounted) {
           try {
             const userProfile = await authService.getUserProfile(session.user.id);
+            console.log('[AuthProvider] User profile loaded:', userProfile.email, 'role:', userProfile.role);
             if (mounted) {
               setUser(userProfile);
             }
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted) {
+          console.log('[AuthProvider] Initial loading complete');
           setLoading(false);
         }
       }
@@ -65,21 +67,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log(`[AuthProvider] Auth state changed: ${event}`);
           if (session?.user) {
             const userProfile = await authService.getUserProfile(session.user.id);
+            console.log('[AuthProvider] User profile updated:', userProfile.email, 'role:', userProfile.role);
             if (mounted) {
               setUser(userProfile);
+              setLoading(false);
             }
           } else {
             if (mounted) {
               setUser(null);
+              setLoading(false);
             }
           }
         } catch (error) {
           console.error('Error in auth state change:', error);
           if (mounted) {
             setUser(null);
-          }
-        } finally {
-          if (mounted) {
             setLoading(false);
           }
         }

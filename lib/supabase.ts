@@ -46,8 +46,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'X-Client-Info': 'food-delivery-app',
     },
-    // Remove the custom fetch that uses AbortSignal.timeout
-    // Let Supabase use its default fetch implementation
+    // Add fetch configuration for better error handling
+    fetch: (url, options = {}) => {
+      return fetch(url, {
+        ...options,
+        // Add timeout for network requests
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      }).catch((error) => {
+        console.error('[Supabase] Fetch error:', error);
+        throw error;
+      });
+    },
   },
 });
 
