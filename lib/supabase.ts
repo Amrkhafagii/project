@@ -29,27 +29,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     } : undefined,
     detectSessionInUrl: false, // Important for mobile
   },
-  // Add global error handler for network requests
-  global: {
-    fetch: async (url, options) => {
-      try {
-        const response = await fetch(url, options);
-        
-        // Log failed requests in development
-        if (__DEV__ && !response.ok) {
-          console.warn(`[Supabase] Request failed: ${url} - Status: ${response.status}`);
-        }
-        
-        return response;
-      } catch (error) {
-        console.error('Supabase fetch error:', error);
-        // Re-throw the error with more context for debugging
-        throw new Error(
-          `Network request failed: ${error?.message || 'Unknown error'}`
-        );
-      }
-    }
-  }
 });
 
 // Log Supabase connection info for debugging
