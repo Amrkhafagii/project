@@ -18,6 +18,7 @@ export const Marker = ({ title, description, coordinate, ...props }) => {
     <View style={styles.marker}>
       <Text style={styles.markerText}>📍</Text>
       {title && <Text style={styles.markerTitle}>{title}</Text>}
+      }
     </View>
   );
 };
