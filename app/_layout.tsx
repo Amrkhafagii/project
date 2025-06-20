@@ -4,20 +4,10 @@ import { ErrorBoundary } from '@/app/_components/common/ErrorBoundary';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from '@/providers/AppProvider'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-
-// Force network timeout to be longer for slow connections
 import { Platform, LogBox } from 'react-native';
+
+// Only ignore warnings, don't override fetch
 if (Platform.OS !== 'web') {
-  // Increase timeout for slow connections on mobile
-  fetch.bind(global);
-  global.fetch = (uri, options) => {
-    return fetch(uri, { 
-      ...options, 
-      timeout: 15000 // 15 second timeout instead of default
-    });
-  };
-  
-  // Ignore certain warnings that might appear during dev
   LogBox.ignoreLogs([
     'Non-serializable values were found in the navigation state',
     'VirtualizedLists should never be nested'
@@ -44,5 +34,4 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </ErrorBoundary>
   );
-
 }
