@@ -38,6 +38,7 @@ const Marker = ({ title, description, coordinate, ...props }) => {
     >
       <Text>📍</Text>
       {title && <Text style={{ fontSize: 10 }}>{title}</Text>}
+      }
     </View>
   );
 };
