@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, Text, Platform, StyleSheet, TouchableOpacity, AppState } from 'react-native';
 import { router, SplashScreen } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants';
@@ -106,14 +106,35 @@ export default function IndexScreen() {
   // Handle unexpected errors during auth/navigation
   useEffect(() => {
     const handleNetworkError = (error: any) => {
-      console.error('Network error during navigation:', error);
+      console.error('Network error during navigation:', error?.message || error);
       setNetworkError('Network connection issue. Please check your connection and try again.');
     };
     
-    window.addEventListener('error', handleNetworkError);
-    
-    return () => {
-      window.removeEventListener('error', handleNetworkError);
+    // Platform-specific error handling
+    if (Platform.OS === 'web') {
+      // Web platform: use window.addEventListener
+      window.addEventListener('error', handleNetworkError);
+      
+      return () => {
+        window.removeEventListener('error', handleNetworkError);
+      };
+    } else {
+      // Native platforms (iOS/Android): use AppState for app status changes
+      // This doesn't catch errors the same way, but helps detect when app comes back from background
+      // which is often when network connectivity issues are detected
+      const subscription = AppState.addEventListener('change', (nextAppState) => {
+        if (nextAppState === 'active') {
+          // Check if we have connectivity when app becomes active
+          fetch('https://www.google.com', { method: 'HEAD', timeout: 5000 })
+            .catch((error) => {
+              handleNetworkError(error);
+            });
+        }
+      });
+      
+      return () => {
+        subscription.remove();
+      };
     };
   }, []);
 
@@ -125,7 +146,10 @@ export default function IndexScreen() {
       {networkError ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Connection Error</Text>
-          <Text style={styles.errorMessage}>{networkError}</Text>
+          <Text style={styles.errorMessage}>
+            {networkError}
+            {Platform.OS !== 'web' ? "\n\nPlease check your internet connection." : ""}
+          </Text>
           {Platform.OS !== 'web' && (
             <TouchableOpacity 
               style={styles.retryButton}
@@ -178,6 +202,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
+    marginTop: 10,
   },
   retryText: {
     color: Colors.white,
