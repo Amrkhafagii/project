@@ -79,9 +79,7 @@ export const authService = {
         email,
         password,
       });
-    }
 
-    if (!profile) {
       if (authError) {
         throw new Error(authError.message);
       }
@@ -118,6 +116,10 @@ export const authService = {
         createdAt: profile.created_at || new Date().toISOString(),
         updatedAt: profile.updated_at || new Date().toISOString(),
       };
+    } finally {
+      // Always reset the auth operation flag when completed
+      authOperationInProgress = false;
+    }
     } finally {
       // Always reset the auth operation flag when completed
       authOperationInProgress = false;
