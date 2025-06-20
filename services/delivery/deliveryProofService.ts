@@ -4,7 +4,8 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 import * as Location from 'expo-location';
 import * as Crypto from 'expo-crypto';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { DeliveryProof, CameraPermissions, SignatureData, Location as LocationType } from '@/types/delivery';
 
 class DeliveryProofService {
@@ -160,8 +161,14 @@ class DeliveryProofService {
 
   private async storeEncryptedProof(proof: DeliveryProof): Promise<void> {
     try {
-      const encryptedData = await this.encryptData(JSON.stringify(proof));
-      await EncryptedStorage.setItem(`delivery_proof_${proof.id}`, encryptedData);
+      const data = JSON.stringify(proof);
+      if (Platform.OS === 'web') {
+        // Use localStorage for web
+        localStorage.setItem(`delivery_proof_${proof.id}`, data);
+      } else {
+        // Use AsyncStorage for mobile platforms
+        await AsyncStorage.setItem(`delivery_proof_${proof.id}`, data);
+      }
     } catch (error) {
       console.error('Error storing encrypted proof:', error);
       throw new Error('Failed to store proof securely');
@@ -170,11 +177,17 @@ class DeliveryProofService {
 
   async getDeliveryProof(proofId: string): Promise<DeliveryProof | null> {
     try {
-      const encryptedData = await EncryptedStorage.getItem(`delivery_proof_${proofId}`);
-      if (!encryptedData) return null;
+      let data: string | null = null;
+      
+      if (Platform.OS === 'web') {
+        data = localStorage.getItem(`delivery_proof_${proofId}`);
+      } else {
+        data = await AsyncStorage.getItem(`delivery_proof_${proofId}`);
+      }
+      
+      if (!data) return null;
 
-      const decryptedData = await this.decryptData(encryptedData);
-      return JSON.parse(decryptedData);
+      return JSON.parse(data);
     } catch (error) {
       console.error('Error retrieving delivery proof:', error);
       return null;

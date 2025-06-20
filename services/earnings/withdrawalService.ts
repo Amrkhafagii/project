@@ -1,4 +1,5 @@
-import EncryptedStorage from 'react-native-encrypted-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { WithdrawalMethod, WithdrawalRequest, WithdrawalHistory, BankDetails, PayPalDetails, DigitalWalletDetails } from '@/types/earnings';
 
@@ -12,11 +13,17 @@ class WithdrawalService {
 
   async getWithdrawalMethods(userId: string): Promise<WithdrawalMethod[]> {
     try {
-      const encryptedData = await EncryptedStorage.getItem(`${this.STORAGE_KEYS.METHODS}_${userId}`);
-      if (!encryptedData) return [];
+      let data: string | null = null;
+      
+      if (Platform.OS === 'web') {
+        data = localStorage.getItem(`${this.STORAGE_KEYS.METHODS}_${userId}`);
+      } else {
+        data = await AsyncStorage.getItem(`${this.STORAGE_KEYS.METHODS}_${userId}`);
+      }
+      
+      if (!data) return [];
 
-      const decryptedData = await this.decryptData(encryptedData);
-      return JSON.parse(decryptedData);
+      return JSON.parse(data);
     } catch (error) {
       console.error('Error getting withdrawal methods:', error);
       return [];
@@ -153,8 +160,15 @@ class WithdrawalService {
 
   async getWithdrawalHistory(userId: string): Promise<WithdrawalHistory> {
     try {
-      const encryptedData = await EncryptedStorage.getItem(`${this.STORAGE_KEYS.HISTORY}_${userId}`);
-      if (!encryptedData) {
+      let data: string | null = null;
+      
+      if (Platform.OS === 'web') {
+        data = localStorage.getItem(`${this.STORAGE_KEYS.HISTORY}_${userId}`);
+      } else {
+        data = await AsyncStorage.getItem(`${this.STORAGE_KEYS.HISTORY}_${userId}`);
+      }
+      
+      if (!data) {
         return {
           requests: [],
           totalWithdrawn: 0,
@@ -163,8 +177,7 @@ class WithdrawalService {
         };
       }
 
-      const decryptedData = await this.decryptData(encryptedData);
-      const history = JSON.parse(decryptedData);
+      const history = JSON.parse(data);
       
       // Convert date strings back to Date objects
       history.requests = history.requests.map((request: any) => ({
@@ -292,8 +305,12 @@ class WithdrawalService {
 
   private async storeEncryptedMethods(userId: string, methods: WithdrawalMethod[]): Promise<void> {
     try {
-      const encryptedData = await this.encryptData(JSON.stringify(methods));
-      await EncryptedStorage.setItem(`${this.STORAGE_KEYS.METHODS}_${userId}`, encryptedData);
+      const data = JSON.stringify(methods);
+      if (Platform.OS === 'web') {
+        localStorage.setItem(`${this.STORAGE_KEYS.METHODS}_${userId}`, data);
+      } else {
+        await AsyncStorage.setItem(`${this.STORAGE_KEYS.METHODS}_${userId}`, data);
+      }
     } catch (error) {
       console.error('Error storing withdrawal methods:', error);
       throw new Error('Failed to store withdrawal methods securely');
@@ -306,8 +323,12 @@ class WithdrawalService {
       history.requests.unshift(request);
       history.pendingAmount += request.amount;
 
-      const encryptedData = await this.encryptData(JSON.stringify(history));
-      await EncryptedStorage.setItem(`${this.STORAGE_KEYS.HISTORY}_${userId}`, encryptedData);
+      const data = JSON.stringify(history);
+      if (Platform.OS === 'web') {
+        localStorage.setItem(`${this.STORAGE_KEYS.HISTORY}_${userId}`, data);
+      } else {
+        await AsyncStorage.setItem(`${this.STORAGE_KEYS.HISTORY}_${userId}`, data);
+      }
     } catch (error) {
       console.error('Error storing withdrawal request:', error);
       throw new Error('Failed to store withdrawal request');
