@@ -1,32 +1,23 @@
 import { useEffect, useState } from 'react';
-import * as SplashScreen from 'expo-splash-screen';
 import { Platform } from 'react-native';
-
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
 
 export function useFrameworkReady() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    async function prepare() {
-      try {
-        // Pre-load fonts, make any API calls you need to do here
-        // For now, we'll just simulate some loading time
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (e) {
-        console.warn(e);
-      } finally {
+    // For web, we need to ensure the DOM is ready
+    if (Platform.OS === 'web') {
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
         setIsReady(true);
-        try {
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          console.warn("Error hiding splash screen:", e);
-        }
+      } else {
+        const handleLoad = () => setIsReady(true);
+        window.addEventListener('DOMContentLoaded', handleLoad);
+        return () => window.removeEventListener('DOMContentLoaded', handleLoad);
       }
+    } else {
+      // For native platforms, we're ready immediately
+      setIsReady(true);
     }
-
-    prepare();
   }, []);
 
   return isReady;

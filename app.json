@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "FoodDelivery",
-    "slug": "food-delivery",
+    "name": "Food Delivery",
+    "slug": "food-delivery-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,47 +16,22 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.fooddelivery",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app needs access to location to show nearby restaurants and track deliveries.",
-        "NSLocationAlwaysUsageDescription": "This app needs access to location to track deliveries in the background."
-      }
+      "bundleIdentifier": "com.fooddelivery.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.yourcompany.fooddelivery",
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
-      ]
+      "package": "com.fooddelivery.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
-        }
-      ]
+      "expo-router"
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "your-project-id"
-      }
-    }
+    "scheme": "fooddelivery"
   }
 }
