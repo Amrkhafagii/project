@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Zenith Food Delivery",
-    "slug": "zenith-food-delivery",
+    "name": "FoodDelivery",
+    "slug": "food-delivery",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,21 +16,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zenith.fooddelivery",
+      "bundleIdentifier": "com.yourcompany.fooddelivery",
       "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSExceptionDomains": {
-            "zcqsacyaboghebsboeys.supabase.co": {
-              "NSExceptionAllowsInsecureHTTPLoads": false,
-              "NSIncludesSubdomains": true,
-              "NSRequiresCertificateTransparency": true
-            },
-            "localhost": {
-              "NSExceptionAllowsInsecureHTTPLoads": true
-            }
-          }
-        }
+        "NSLocationWhenInUseUsageDescription": "This app needs access to location to show nearby restaurants and track deliveries.",
+        "NSLocationAlwaysUsageDescription": "This app needs access to location to track deliveries in the background."
       }
     },
     "android": {
@@ -38,14 +27,36 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.zenith.fooddelivery"
+      "package": "com.yourcompany.fooddelivery",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
     },
     "extra": {
-      "supabaseUrl": "https://zcqsacyaboghebsboeys.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjcXNhY3lhYm9naGVic2JvZXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzMzU2NjEsImV4cCI6MjA2NTkxMTY2MX0.CXpMS-CAT2f2hzvxC4uiJF6kVyPDoXnqixp0QlmAhlo"
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id"
+      }
     }
   }
 }

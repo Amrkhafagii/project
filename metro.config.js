@@ -1,25 +1,11 @@
-const { getDefaultConfig } = require('@expo/metro-config');
-const path = require('path');
+const { getDefaultConfig } = require('expo/metro-config');
 
-const defaultConfig = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
 
-// Create a custom resolver for web platform
-const defaultResolver = defaultConfig.resolver;
-const sourceExts = [...defaultConfig.resolver.sourceExts];
+// Add support for additional file extensions if needed
+config.resolver.sourceExts.push('cjs');
 
-// Add web-specific configuration
-defaultConfig.resolver = {
-  ...defaultResolver,
-  sourceExts: process.env.EXPO_TARGET === 'web' 
-    ? ['web.js', 'web.jsx', 'web.ts', 'web.tsx', ...sourceExts] 
-    : sourceExts,
-  extraNodeModules: {
-    ...defaultResolver.extraNodeModules,
-    // When building for web, replace problematic native modules with mocks
-    ...(process.env.EXPO_TARGET === 'web' ? {
-      'react-native/Libraries/Utilities/codegenNativeCommands': path.resolve(__dirname, './web-mocks/empty.js'),
-    } : {}),
-  },
-};
+// Ensure proper module resolution
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
-module.exports = defaultConfig;
+module.exports = config;

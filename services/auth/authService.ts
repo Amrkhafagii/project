@@ -6,35 +6,69 @@ class AuthService {
     try {
       console.log(`[AuthService] Attempting sign in for: ${email}`);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (error) {
-        console.error('[AuthService] Supabase auth error:', error);
-        
-        // Provide more specific error messages
-        if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password');
-        } else if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please verify your email before signing in');
-        } else if (error.message.includes('Network request failed')) {
-          throw new Error('Unable to connect to server. Please check your internet connection.');
-        }
-        
-        throw new Error(error.message || 'Authentication failed');
-      }
-
-      if (!data.user) {
-        throw new Error('No user data returned');
-      }
-
-      console.log(`[AuthService] Sign in successful for user: ${data.user.id}`);
+      // Add retry logic for network failures
+      let retries = 3;
+      let lastError: any;
       
-      // Get user profile
-      const userProfile = await this.getUserProfile(data.user.id);
-      return userProfile;
+      while (retries > 0) {
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password,
+          });
+
+          if (error) {
+            console.error('[AuthService] Supabase auth error:', error);
+            
+            // Check if it's a network error
+            if (error.message?.includes('Network request failed') || 
+                error.message?.includes('fetch')) {
+              lastError = error;
+              retries--;
+              if (retries > 0) {
+                console.log(`[AuthService] Retrying... attempts left: ${retries}`);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+                continue;
+              }
+            }
+            
+            // Provide more specific error messages
+            if (error.message?.includes('Invalid login credentials')) {
+              throw new Error('Invalid email or password');
+            } else if (error.message?.includes('Email not confirmed')) {
+              throw new Error('Please verify your email before signing in');
+            } else if (error.message?.includes('Network request failed')) {
+              throw new Error('Unable to connect to server. Please check your internet connection.');
+            }
+            
+            throw new Error(error.message || 'Authentication failed');
+          }
+
+          if (!data.user) {
+            throw new Error('No user data returned');
+          }
+
+          console.log(`[AuthService] Sign in successful for user: ${data.user.id}`);
+          
+          // Get user profile
+          const userProfile = await this.getUserProfile(data.user.id);
+          return userProfile;
+          
+        } catch (error) {
+          if (retries === 0) {
+            throw error;
+          }
+          lastError = error;
+          retries--;
+          if (retries > 0) {
+            console.log(`[AuthService] Retrying... attempts left: ${retries}`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      throw lastError || new Error('Authentication failed after multiple attempts');
+      
     } catch (error) {
       console.error('[AuthService] Sign in error:', error);
       
@@ -259,6 +293,22 @@ class AuthService {
     } catch (error) {
       console.error('[AuthService] Get current session error:', error);
       return null;
+    }
+  }
+
+  // Test connection method
+  async testConnection(): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('[AuthService] Connection test failed:', error);
+        return false;
+      }
+      console.log('[AuthService] Connection test successful');
+      return true;
+    } catch (error) {
+      console.error('[AuthService] Connection test error:', error);
+      return false;
     }
   }
 }
