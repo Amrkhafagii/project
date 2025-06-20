@@ -1,230 +1,278 @@
 import { supabase } from '@/lib/supabase';
-import { User, UserRole, UserProfile } from '@/types/auth';
+import { User, UserRole } from '@/types/auth';
 import { Platform } from 'react-native';
 
-export const authService = {
+class AuthService {
   async signIn(email: string, password: string): Promise<User> {
-    console.log(`[Auth] Signing in user: ${email} on platform: ${Platform.OS}`);
-    
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      throw new Error(authError.message);
-    }
-    
-    if (!authData?.user) {
-      console.error('[Auth] Authentication succeeded but no user data returned');
-      throw new Error('Authentication failed: No user data returned');
-    }
-
-    // Create basic user with minimal info in case profile fetch fails
-    const basicUser: User = {
-      id: authData.user.id,
-      email: authData.user.email!,
-      role: null,
-      firstName: '',
-      lastName: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Try to get profile but don't fail auth if profile fetch fails
     try {
-      console.log(`[Auth] Auth successful, fetching profile for user: ${authData.user.id}`);
+      console.log(`[AuthService] Attempting sign in for: ${email}`);
+      
+      // Test network connectivity first
+      if (Platform.OS !== 'web') {
+        try {
+          const testResponse = await fetch('https://www.google.com', { method: 'HEAD' });
+          console.log('[AuthService] Network connectivity test passed');
+        } catch (netError) {
+          console.error('[AuthService] Network connectivity test failed:', netError);
+          throw new Error('No internet connection. Please check your network settings.');
+        }
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        console.error('[AuthService] Supabase auth error:', error);
+        
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password');
+        } else if (error.message.includes('Network request failed')) {
+          throw new Error('Unable to connect to server. Please check your internet connection.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please verify your email before signing in');
+        }
+        
+        throw new Error(error.message || 'Authentication failed');
+      }
+
+      if (!data.user) {
+        throw new Error('No user data returned');
+      }
+
+      console.log(`[AuthService] Sign in successful for user: ${data.user.id}`);
       
       // Get user profile
-      const { data: profile, error: profileError } = await supabase 
-        .from('profiles')
-        .select('*')
-        .eq('user_id', authData.user.id)
+      const userProfile = await this.getUserProfile(data.user.id);
+      return userProfile;
+    } catch (error) {
+      console.error('[AuthService] Sign in error:', error);
+      
+      // Re-throw with more context if needed
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          throw new Error('Network connection failed. Please check your internet connection and try again.');
+        }
+        throw error;
+      }
+      
+      throw new Error('An unexpected error occurred during sign in');
+    }
+  }
+
+  async signUp(
+    email: string, 
+    password: string, 
+    profileData: {
+      fullName: string;
+      phoneNumber: string;
+      role: UserRole;
+    }
+  ): Promise<User> {
+    try {
+      console.log(`[AuthService] Attempting sign up for: ${email} with role: ${profileData.role}`);
+      
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            full_name: profileData.fullName,
+            phone_number: profileData.phoneNumber,
+            role: profileData.role,
+          },
+        },
+      });
+
+      if (authError) {
+        console.error('[AuthService] Supabase signup error:', authError);
+        
+        if (authError.message.includes('already registered')) {
+          throw new Error('An account with this email already exists');
+        }
+        
+        throw new Error(authError.message || 'Sign up failed');
+      }
+
+      if (!authData.user) {
+        throw new Error('No user data returned after sign up');
+      }
+
+      console.log(`[AuthService] User created in auth: ${authData.user.id}`);
+
+      // Create user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email: authData.user.email,
+          full_name: profileData.fullName,
+          phone_number: profileData.phoneNumber,
+          role: profileData.role,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
         .single();
 
       if (profileError) {
-        console.warn(`[Auth] Profile fetch warning: ${profileError.message}`);
-        return basicUser;
+        console.error('[AuthService] Profile creation error:', profileError);
+        
+        // If profile creation fails, we should clean up the auth user
+        await supabase.auth.signOut();
+        
+        throw new Error('Failed to create user profile. Please try again.');
       }
 
-      if (!profile) {
-        console.warn('[Auth] Profile not found, returning basic user');
-        return basicUser;
-      }
+      console.log(`[AuthService] Profile created for user: ${authData.user.id}`);
 
-      console.log('[Auth] Login complete, returning user data');
       return {
-        id: authData.user.id,
-        email: authData.user.email!,
+        id: profile.id,
+        email: profile.email!,
+        fullName: profile.full_name,
+        phoneNumber: profile.phone_number || undefined,
         role: profile.role as UserRole,
-        firstName: profile.full_name?.split(' ')[0] || '',
-        lastName: profile.full_name?.split(' ')[1] || '',
-        phone: profile.phone,
-        onboarded: profile.onboarded || false,
-        createdAt: profile.created_at || new Date().toISOString(),
-        updatedAt: profile.updated_at || new Date().toISOString(),
-        preferences: profile.preferences || {},
-        fitnessProfile: profile.fitness_profile || undefined,
+        createdAt: profile.created_at,
+        updatedAt: profile.updated_at,
       };
-    } catch (profileError) {
-      console.error('[Auth] Profile fetch error:', profileError);
-      // Return basic user even if profile fetch fails
-      return basicUser;
+    } catch (error) {
+      console.error('[AuthService] Sign up error:', error);
+      
+      if (error instanceof Error) {
+        throw error;
+      }
+      
+      throw new Error('An unexpected error occurred during sign up');
     }
-  },
-
-  async signUp(email: string, password: string, profileData: { fullName?: string }): Promise<User> {
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (authError) {
-      throw new Error(authError.message);
-    }
-
-    if (!authData.user) {
-      throw new Error('Registration failed');
-    }
-
-    // Create user profile
-    const { data: profile, error: profileError } = await supabase 
-      .from('profiles')
-      .insert({
-        user_id: authData.user.id,
-        full_name: profileData.fullName || '',
-        role: null, // Role will be set later
-        phone: null,
-        onboarded: false,
-      })
-      .select()
-      .single();
-
-    if (profileError) {
-      throw new Error(`Profile creation failed: ${profileError.message}`);
-    }
-
-    return {
-      id: authData.user.id,
-      email: authData.user.email!,
-      role: null, // No role yet
-      firstName: profileData.fullName?.split(' ')[0] || '',
-      lastName: profileData.fullName?.split(' ')[1] || '',
-      phone: profile.phone,
-      onboarded: false,
-      createdAt: profile.created_at || new Date().toISOString(),
-      updatedAt: profile.updated_at || new Date().toISOString(),
-    };
-  },
+  }
 
   async signOut(): Promise<void> {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw new Error(error.message);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[AuthService] Sign out error:', error);
+        throw new Error(error.message || 'Sign out failed');
+      }
+      console.log('[AuthService] User signed out successfully');
+    } catch (error) {
+      console.error('[AuthService] Sign out error:', error);
+      throw error instanceof Error ? error : new Error('Sign out failed');
     }
-  },
+  }
 
   async getUserProfile(userId: string): Promise<User> {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      console.error(`[Auth] Profile fetch failed for user ${userId}:`, error.message);
-      throw new Error(`Profile fetch failed: ${error.message}`);
-    }
-
-    if (!profile) {
-      console.error(`[Auth] No profile found for user ${userId}`);
-      throw new Error('User profile not found');
-    }
-
-    return {
-      id: userId,
-      email: '', // We would need to get this from auth.users table
-      role: profile.role as UserRole | null,
-      firstName: profile.full_name?.split(' ')[0] || '',
-      lastName: profile.full_name?.split(' ')[1] || '',
-      phone: profile.phone,
-      onboarded: profile.onboarded || false,
-      createdAt: profile.created_at || new Date().toISOString(),
-      updatedAt: profile.updated_at || new Date().toISOString(),
-      preferences: profile.preferences || {},
-      fitnessProfile: profile.fitness_profile || undefined,
-    };
-  },
-
-  async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
-    // Prepare update data
-    const updateData: Partial<UserProfile> = {
-      updated_at: new Date().toISOString(),
-    };
-    
-    // Handle name updates
-    if (updates.firstName !== undefined || updates.lastName !== undefined) {
-      // Use separate query to avoid recursion
-      const { data: currentProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('user_id', userId)
-        .single();
+    try {
+      console.log(`[AuthService] Fetching profile for user: ${userId}`);
       
-      if (profileError) {
-        throw new Error(`Profile fetch failed: ${profileError.message}`);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('[AuthService] Profile fetch error:', error);
+        
+        if (error.code === 'PGRST116') {
+          throw new Error('User profile not found. Please complete your registration.');
+        }
+        
+        throw new Error(error.message || 'Failed to fetch user profile');
+      }
+
+      if (!data) {
+        throw new Error('No profile data found');
+      }
+
+      console.log(`[AuthService] Profile fetched successfully for user: ${userId}`);
+
+      return {
+        id: data.id,
+        email: data.email,
+        fullName: data.full_name,
+        phoneNumber: data.phone_number || undefined,
+        role: data.role as UserRole,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      console.error('[AuthService] Get user profile error:', error);
+      
+      if (error instanceof Error) {
+        throw error;
       }
       
-      const nameParts = currentProfile?.full_name?.split(' ') || ['', ''];
-      const firstName = updates.firstName !== undefined ? updates.firstName : nameParts[0];
-      const lastName = updates.lastName !== undefined ? updates.lastName : nameParts.slice(1).join(' ');
-      updateData.full_name = `${firstName} ${lastName}`.trim();
+      throw new Error('Failed to fetch user profile');
     }
-    
-    // Handle other fields
-    if (updates.role !== undefined) updateData.role = updates.role;
-    if (updates.phone !== undefined) updateData.phone = updates.phone;
-    if (updates.onboarded !== undefined) updateData.onboarded = updates.onboarded;
-    if (updates.preferences !== undefined) updateData.preferences = updates.preferences;
-    if (updates.fitnessProfile !== undefined) updateData.fitness_profile = updates.fitnessProfile;
-    
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .update(updateData)
-      .eq('user_id', userId)
-      .select()
-      .single();
-    
-    if (error) {
-      throw new Error(`Profile update failed: ${error.message}`);
+  }
+
+  async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          full_name: updates.fullName,
+          phone_number: updates.phoneNumber,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[AuthService] Profile update error:', error);
+        throw new Error(error.message || 'Failed to update profile');
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        fullName: data.full_name,
+        phoneNumber: data.phone_number || undefined,
+        role: data.role as UserRole,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      console.error('[AuthService] Update profile error:', error);
+      throw error instanceof Error ? error : new Error('Failed to update profile');
     }
-    
-    return {
-      id: userId,
-      email: '', // We would need to get this from auth.users
-      role: profile.role as UserRole | null,
-      firstName: profile.full_name?.split(' ')[0] || '',
-      lastName: profile.full_name?.split(' ')[1] || '',
-      phone: profile.phone,
-      onboarded: profile.onboarded || false,
-      createdAt: profile.created_at || new Date().toISOString(),
-      updatedAt: profile.updated_at,
-      preferences: profile.preferences || {},
-      fitnessProfile: profile.fitness_profile || undefined,
-    };
-  },
+  }
 
   async resetPassword(email: string): Promise<void> {
-    // Use a dynamic redirect URL based on the platform
-    const redirectUrl = Platform.OS === 'web' 
-      ? 'https://zenith-meal-delivery.com/reset-password'
-      : 'zenith-meal-delivery://reset-password';
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
-    
-    if (error) {
-      console.error(`[Auth] Password reset failed for ${email}:`, error.message);
-      throw new Error(`Password reset failed: ${error.message}`);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        console.error('[AuthService] Password reset error:', error);
+        throw new Error(error.message || 'Failed to send reset email');
+      }
+    } catch (error) {
+      console.error('[AuthService] Reset password error:', error);
+      throw error instanceof Error ? error : new Error('Failed to reset password');
     }
-  },
-};
+  }
+
+  async getCurrentSession() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('[AuthService] Get session error:', error);
+        return null;
+      }
+      
+      return session;
+    } catch (error) {
+      console.error('[AuthService] Get current session error:', error);
+      return null;
+    }
+  }
+}
+
+export const authService = new AuthService();
