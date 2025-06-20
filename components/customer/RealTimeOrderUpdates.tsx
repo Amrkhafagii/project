@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Bell, CheckCircle, AlertCircle, Truck, Package } from 'lucide-react-native';
+import { Bell, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Truck, Package } from 'lucide-react-native';
 import { Colors, Layout } from '@/constants';
 import { getRealTimeManager } from '@/services/realtime/realTimeManager';
 

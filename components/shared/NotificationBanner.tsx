@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { X, Package, Truck, CheckCircle, Bell } from 'lucide-react-native';
+import { X, Package, Truck, CircleCheck as CheckCircle, Bell } from 'lucide-react-native';
 import { Colors, Layout } from '@/constants';
 
 export type NotificationType = 'order_update' | 'delivery' | 'promotion' | 'general';

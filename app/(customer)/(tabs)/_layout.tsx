@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { AuthGuard } from '@/components/shared/AuthGuard';
 import { TabBarIcon } from '@/app/_components/navigation/TabBarIcon';
 import { Colors } from '@/constants';
-import { Home, Search, ShoppingBag, Heart, User, Bike } from 'lucide-react-native';
+import { Chrome as Home, Search, ShoppingBag, Heart, User, Bike } from 'lucide-react-native';
 
 export default function CustomerTabLayout() {
   return (
