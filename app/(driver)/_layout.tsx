@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { useAuth } from '@/services/auth/AuthProvider';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 
 export default function DriverLayout() {
   const { user, loading } = useAuth();
@@ -20,9 +20,7 @@ export default function DriverLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#F59E0B" />
-      </View>
+      <LoadingSpinner color="#F59E0B" />
     );
   }
 

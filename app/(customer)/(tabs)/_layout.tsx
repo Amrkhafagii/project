@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { AuthGuard } from '@/components/shared/AuthGuard';
+import { AuthGuard } from '@/features/shared/components/AuthGuard';
 import { TabBarIcon } from '@/app/_components/navigation/TabBarIcon';
 import { Colors } from '@/constants';
 import { Chrome as Home, Search, ShoppingBag, Heart, User, Bike } from 'lucide-react-native';

@@ -3,6 +3,7 @@ import { useAuth } from '@/services/auth/AuthProvider';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
+import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 
 export default function CustomerLayout() {
   const { user, loading } = useAuth();
@@ -20,9 +21,7 @@ export default function CustomerLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+      <LoadingSpinner color="#007AFF" />
     );
   }
 

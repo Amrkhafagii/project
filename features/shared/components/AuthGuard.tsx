@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/services/auth/AuthProvider';
+import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from './LoadingSpinner';
 import { UserRole } from '@/types/auth';
 
@@ -30,3 +30,5 @@ export function AuthGuard({
 
   return <>{children}</>;
 }
+
+export default AuthGuard;

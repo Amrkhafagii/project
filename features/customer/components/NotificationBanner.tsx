@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { X, Package, Truck, CheckCircle } from 'lucide-react-native';
-import { Colors } from '@/constants';
+import { X, Package, Truck, CheckCircle, MessageCircle } from 'lucide-react-native';
+import { Colors, Layout } from '@/constants';
 
-interface NotificationBannerProps {
+export interface NotificationBannerProps {
   notification: {
     id: string;
     type: 'order_update' | 'delivery' | 'promotion' | 'general';
@@ -77,7 +77,7 @@ export function NotificationBanner({
       case 'promotion':
         return <CheckCircle size={20} color={Colors.white} />;
       default:
-        return <CheckCircle size={20} color={Colors.white} />;
+        return <MessageCircle size={20} color={Colors.white} />;
     }
   };
 
@@ -199,3 +199,5 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 });
+
+export default NotificationBanner;

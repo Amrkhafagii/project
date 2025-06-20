@@ -1,7 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { OrderStatus } from '@/types/common';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '@/utils/constants';
+
+export enum OrderStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  PICKED_UP = 'picked_up',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled'
+}
 
 interface OrderStatusBadgeProps {
   status: OrderStatus;

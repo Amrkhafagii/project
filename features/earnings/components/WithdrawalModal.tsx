@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   StyleSheet,
+  Modal,
   TouchableOpacity,
   TextInput,
   ScrollView,
@@ -39,7 +39,7 @@ export default function WithdrawalModal({
   onWithdrawalRequested,
 }: WithdrawalModalProps) {
   const [currentStep, setCurrentStep] = useState<'amount' | 'method' | 'details' | 'confirm'>('amount');
-  const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [withdrawalAmount, setWithdrawalAmount] = useState<string>('');
   const [selectedMethod, setSelectedMethod] = useState<WithdrawalMethod | null>(null);
   const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethod[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -189,22 +189,25 @@ export default function WithdrawalModal({
       setIsLoading(true);
       
       // Add new payment method
-      const newMethod = await withdrawalService.addWithdrawalMethod(userId, {
-        type: selectedMethod.type,
-        name: selectedMethod.type === 'bank_transfer' 
-          ? `${bankDetails.bankName} ****${bankDetails.accountNumber.slice(-4)}`
-          : selectedMethod.type === 'paypal'
-          ? paypalDetails.email
-          : `${digitalWalletDetails.walletType} - ${digitalWalletDetails.displayName}`,
-        details: selectedMethod.type === 'bank_transfer' 
-          ? bankDetails 
-          : selectedMethod.type === 'paypal' 
-          ? paypalDetails 
-          : digitalWalletDetails,
-        isDefault: withdrawalMethods.length === 0,
-        processingTime: selectedMethod.processingTime,
-        fees: 0,
-      });
+      const newMethod = await withdrawalService.addWithdrawalMethod(
+        userId,
+        {
+          type: selectedMethod.type,
+          name: selectedMethod.type === 'bank_transfer' 
+            ? `${bankDetails.bankName} ****${bankDetails.accountNumber.slice(-4)}`
+            : selectedMethod.type === 'paypal'
+            ? paypalDetails.email
+            : `${digitalWalletDetails.walletType} - ${digitalWalletDetails.displayName}`,
+          details: selectedMethod.type === 'bank_transfer' 
+            ? bankDetails 
+            : selectedMethod.type === 'paypal' 
+            ? paypalDetails 
+            : digitalWalletDetails,
+          isDefault: withdrawalMethods.length === 0,
+          processingTime: selectedMethod.processingTime,
+          fees: 0,
+        }
+      );
 
       setSelectedMethod(newMethod);
       setCurrentStep('confirm');
@@ -617,7 +620,11 @@ export default function WithdrawalModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Withdraw Earnings</Text>

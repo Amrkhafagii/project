@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Heart, Star, Clock, DollarSign } from 'lucide-react-native';
+import { Star, Clock, MapPin, Heart } from 'lucide-react-native';
 import { Colors } from '@/constants';
 
 interface FavoriteCardProps {
@@ -72,8 +72,8 @@ export function FavoriteCard({
         <View style={styles.metadata}>
           {item.price && (
             <View style={styles.metaItem}>
-              <DollarSign size={14} color={Colors.textSecondary} />
-              <Text style={styles.metaText}>{item.price.toFixed(2)}</Text>
+              <MapPin size={14} color={Colors.textSecondary} />
+              <Text style={styles.metaText}>${item.price.toFixed(2)}</Text>
             </View>
           )}
           
@@ -231,3 +231,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default FavoriteCard;
