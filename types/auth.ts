@@ -21,7 +21,6 @@ export interface User {
   phone?: string;
   avatar?: string;
   onboarded?: boolean;
-  onboarded?: boolean;
   createdAt: string;
   updatedAt: string;
   preferences?: any;
