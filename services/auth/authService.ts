@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { User, UserRole } from '@/types/auth';
+import { User, UserRole, UserProfile } from '@/types/auth';
 
 export const authService = {
   async signIn(email: string, password: string): Promise<User> {
@@ -17,10 +17,10 @@ export const authService = {
     }
 
     // Get user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
+    const { data: profile, error: profileError } = await supabase 
+      .from('profiles')
       .select('*')
-      .eq('id', authData.user.id)
+      .eq('user_id', authData.user.id)
       .single();
 
     if (profileError) {
@@ -32,18 +32,21 @@ export const authService = {
     }
 
     return {
-      id: profile.id,
-      email: profile.email,
+      id: authData.user.id,
+      email: authData.user.email!,
       role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      firstName: profile.full_name?.split(' ')[0] || '',
+      lastName: profile.full_name?.split(' ')[1] || '',
       phone: profile.phone,
-      createdAt: profile.created_at,
-      updatedAt: profile.updated_at,
+      onboarded: profile.onboarded || false,
+      createdAt: profile.created_at || new Date().toISOString(),
+      updatedAt: profile.updated_at || new Date().toISOString(),
+      preferences: profile.preferences || {},
+      fitnessProfile: profile.fitness_profile || undefined,
     };
   },
 
-  async signUp(email: string, password: string, role: UserRole): Promise<User> {
+  async signUp(email: string, password: string, profileData: { fullName?: string }): Promise<User> {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -58,15 +61,14 @@ export const authService = {
     }
 
     // Create user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
+    const { data: profile, error: profileError } = await supabase 
+      .from('profiles')
       .insert({
-        id: authData.user.id,
-        email: authData.user.email!,
-        role,
-        first_name: '',
-        last_name: '',
+        user_id: authData.user.id,
+        full_name: profileData.fullName || '',
+        role: null, // Role will be set later
         phone: null,
+        onboarded: false,
       })
       .select()
       .single();
@@ -76,14 +78,15 @@ export const authService = {
     }
 
     return {
-      id: profile.id,
-      email: profile.email,
-      role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      id: authData.user.id,
+      email: authData.user.email!,
+      role: null, // No role yet
+      firstName: profileData.fullName?.split(' ')[0] || '',
+      lastName: profileData.fullName?.split(' ')[1] || '',
       phone: profile.phone,
-      createdAt: profile.created_at,
-      updatedAt: profile.updated_at,
+      onboarded: false,
+      createdAt: profile.created_at || new Date().toISOString(),
+      updatedAt: profile.updated_at || new Date().toISOString(),
     };
   },
 
@@ -96,9 +99,9 @@ export const authService = {
 
   async getUserProfile(userId: string): Promise<User> {
     const { data: profile, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -110,29 +113,45 @@ export const authService = {
     }
 
     return {
-      id: profile.id,
-      email: profile.email,
-      role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      id: userId,
+      email: '', // We would need to get this from auth.users table
+      role: profile.role as UserRole | null,
+      firstName: profile.full_name?.split(' ')[0] || '',
+      lastName: profile.full_name?.split(' ')[1] || '',
       phone: profile.phone,
-      createdAt: profile.created_at,
-      updatedAt: profile.updated_at,
+      onboarded: profile.onboarded || false,
+      createdAt: profile.created_at || new Date().toISOString(),
+      updatedAt: profile.updated_at || new Date().toISOString(),
+      preferences: profile.preferences || {},
+      fitnessProfile: profile.fitness_profile || undefined,
     };
   },
 
   async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
-    const updateData: any = {};
-    
-    if (updates.firstName !== undefined) updateData.first_name = updates.firstName;
-    if (updates.lastName !== undefined) updateData.last_name = updates.lastName;
+    // Prepare update data
+    const updateData: Partial<UserProfile> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    // Handle name updates
+    if (updates.firstName !== undefined || updates.lastName !== undefined) {
+      const currentProfile = await this.getUserProfile(userId);
+      const firstName = updates.firstName !== undefined ? updates.firstName : currentProfile.firstName;
+      const lastName = updates.lastName !== undefined ? updates.lastName : currentProfile.lastName;
+      updateData.full_name = `${firstName} ${lastName}`.trim();
+    }
+
+    // Handle other fields
+    if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.phone !== undefined) updateData.phone = updates.phone;
-    if (updates.email !== undefined) updateData.email = updates.email;
+    if (updates.onboarded !== undefined) updateData.onboarded = updates.onboarded;
+    if (updates.preferences !== undefined) updateData.preferences = updates.preferences;
+    if (updates.fitnessProfile !== undefined) updateData.fitness_profile = updates.fitnessProfile;
 
     const { data: profile, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .update(updateData)
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -141,14 +160,27 @@ export const authService = {
     }
 
     return {
-      id: profile.id,
-      email: profile.email,
-      role: profile.role as UserRole,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
+      id: userId,
+      email: '', // We would need to get this from auth.users
+      role: profile.role as UserRole | null,
+      firstName: profile.full_name?.split(' ')[0] || '',
+      lastName: profile.full_name?.split(' ')[1] || '',
       phone: profile.phone,
-      createdAt: profile.created_at,
+      onboarded: profile.onboarded || false,
+      createdAt: profile.created_at || new Date().toISOString(),
       updatedAt: profile.updated_at,
+      preferences: profile.preferences || {},
+      fitnessProfile: profile.fitness_profile || undefined,
     };
+  },
+
+  async resetPassword(email: string): Promise<void> {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://zenith-meal-delivery.com/reset-password',
+    });
+    
+    if (error) {
+      throw new Error(`Password reset failed: ${error.message}`);
+    }
   },
 };

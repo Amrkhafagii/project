@@ -184,6 +184,7 @@ const styles = StyleSheet.create({
     marginBottom: Layout.spacing.lg,
     width: '100%',
     gap: Layout.spacing.md,
+  }
   input: {
     borderWidth: 1,
     borderColor: Colors.border,

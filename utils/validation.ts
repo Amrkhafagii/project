@@ -3,20 +3,16 @@ export const validateEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-export const validatePassword = (password: string): { isValid: boolean; message?: string } => {
+export const validatePassword = (password: string): { isValid: boolean; message: string } => {
+  if (!password || password.trim() === '') {
+    return { isValid: false, message: 'Password is required' };
+  }
+
   if (password.length < 6) {
     return { isValid: false, message: 'Password must be at least 6 characters' };
   }
   
-  if (!/(?=.*[a-z])/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one lowercase letter' };
-  }
-  
-  if (!/(?=.*\d)/.test(password)) {
-    return { isValid: false, message: 'Password must contain at least one number' };
-  }
-  
-  return { isValid: true };
+  return { isValid: true, message: '' };
 };
 
 export const validatePhone = (phone: string): boolean => {
@@ -29,4 +25,16 @@ export const validateRequired = (value: string, fieldName: string): { isValid: b
     return { isValid: false, message: `${fieldName} is required` };
   }
   return { isValid: true };
+};
+
+export const validateName = (name: string): { isValid: boolean; message: string } => {
+  if (!name || name.trim() === '') {
+    return { isValid: false, message: 'Name is required' };
+  }
+  
+  if (name.trim().length < 2) {
+    return { isValid: false, message: 'Name must be at least 2 characters' };
+  }
+  
+  return { isValid: true, message: '' };
 };

@@ -6,10 +6,11 @@ import { User, UserRole } from '@/types/auth';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, role: UserRole) => Promise<void>;
-  signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: Error }>;
+  signUp: (email: string, password: string, profileData?: any) => Promise<{ error?: Error }>;
+  signOut: () => Promise<{ error?: Error }>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: Error }>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,35 +60,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ error?: Error }> => {
     setLoading(true);
     try {
       const user = await authService.signIn(email, password);
       setUser(user);
+      return {};
     } catch (error) {
       setLoading(false);
-      throw error;
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
-  const signUp = async (email: string, password: string, role: UserRole) => {
+  const signUp = async (email: string, password: string, profileData?: any): Promise<{ error?: Error }> => {
     setLoading(true);
     try {
-      const user = await authService.signUp(email, password, role);
+      const user = await authService.signUp(email, password, profileData || {});
       setUser(user);
+      return {};
     } catch (error) {
       setLoading(false);
-      throw error;
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<{ error?: Error }> => {
     setLoading(true);
     try {
       await authService.signOut();
       setUser(null);
+      return {};
     } catch (error) {
-      throw error;
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     } finally {
       setLoading(false);
     }
@@ -107,14 +111,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string): Promise<{ error?: Error }> => {
+    try {
+      await authService.resetPassword(email);
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error(String(error)) };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
       loading, 
       signIn, 
       signUp, 
-      signOut, 
-      updateProfile 
+      signOut,
+      updateProfile,
+      resetPassword
     }}>
       {children}
     </AuthContext.Provider>
