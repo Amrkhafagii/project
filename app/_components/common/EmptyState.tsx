@@ -1,20 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Layout } from '@/constants';
 import { LucideIcon } from 'lucide-react-native';
+import { Colors, Layout } from '@/constants';
 
 interface EmptyStateProps {
   Icon: LucideIcon;
   title: string;
   description: string;
   action?: React.ReactNode;
+  iconSize?: number;
+  style?: any;
 }
 
-export function EmptyState({ Icon, title, description, action }: EmptyStateProps) {
+export function EmptyState({ Icon, title, description, action, iconSize = 64, style }: EmptyStateProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.iconContainer}>
-        <Icon size={64} color={Colors.textTertiary} />
+        <Icon size={iconSize} color={Colors.textTertiary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>

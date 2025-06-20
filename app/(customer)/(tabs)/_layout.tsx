@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { AuthGuard } from '@/components/shared/AuthGuard';
 import { TabBarIcon } from '@/app/_components/navigation/TabBarIcon';
 import { Colors } from '@/constants';
-import { Home, Search, ShoppingBag, Heart, User } from 'lucide-react-native';
+import { Home, Search, ShoppingBag, Heart, User, Bike } from 'lucide-react-native';
 
 export default function CustomerTabLayout() {
   return (
@@ -43,6 +43,16 @@ export default function CustomerTabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon Icon={Search} color={color} focused={focused} />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="order-tracking"
+          options={{
+            title: 'Tracking',
+            tabBarIcon: ({ color, focused }) => (
+              <TabBarIcon Icon={Bike} color={color} focused={focused} />
+            ),
+            href: null, // Hide from tab bar, will be shown conditionally
           }}
         />
         <Tabs.Screen
