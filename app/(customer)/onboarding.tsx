@@ -15,7 +15,7 @@ import { router } from 'expo-router';
 import { Button } from '@/app/_components/common/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors, Layout } from '@/constants';
-import { AlertTriangle, ChevronRight, Image as ImageIcon, MapPin, User } from 'lucide-react-native';
+import { TriangleAlert as AlertTriangle, ChevronRight, Image as ImageIcon, MapPin, User } from 'lucide-react-native';
 
 const ONBOARDING_STEPS = [
   'basics',
