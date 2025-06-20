@@ -30,37 +30,57 @@ export const authService = {
         throw new Error('Authentication failed: No user data returned');
       }
 
-      console.log(`[Auth] Auth successful, fetching profile for user: ${authData.user.id}`);
-
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase 
-        .from('profiles')
-        .select('*')
-        .eq('user_id', authData.user.id)
-        .single();
-
-      if (profileError) {
-        throw new Error(`Profile fetch failed: ${profileError.message}`);
-      }
-
-      if (!profile) {
-        throw new Error('User profile not found');
-      }
-
-      console.log('[Auth] Login complete, returning user data');
-      return {
+      // Create basic user with minimal info in case profile fetch fails
+      const basicUser: User = {
         id: authData.user.id,
         email: authData.user.email!,
-        role: profile.role as UserRole,
-        firstName: profile.full_name?.split(' ')[0] || '',
-        lastName: profile.full_name?.split(' ')[1] || '',
-        phone: profile.phone,
-        onboarded: profile.onboarded || false,
-        createdAt: profile.created_at || new Date().toISOString(),
-        updatedAt: profile.updated_at || new Date().toISOString(),
-        preferences: profile.preferences || {},
-        fitnessProfile: profile.fitness_profile || undefined,
+        role: null,
+        firstName: '',
+        lastName: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
+
+      // Try to get profile but don't fail auth if profile fetch fails
+      try {
+        console.log(`[Auth] Auth successful, fetching profile for user: ${authData.user.id}`);
+        
+        // Get user profile
+        const { data: profile, error: profileError } = await supabase 
+          .from('profiles')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .single();
+  
+        if (profileError) {
+          console.warn(`[Auth] Profile fetch warning: ${profileError.message}`);
+          return basicUser;
+        }
+  
+        if (!profile) {
+          console.warn('[Auth] Profile not found, returning basic user');
+          return basicUser;
+        }
+  
+        console.log('[Auth] Login complete, returning user data');
+        return {
+          id: authData.user.id,
+          email: authData.user.email!,
+          role: profile.role as UserRole,
+          firstName: profile.full_name?.split(' ')[0] || '',
+          lastName: profile.full_name?.split(' ')[1] || '',
+          phone: profile.phone,
+          onboarded: profile.onboarded || false,
+          createdAt: profile.created_at || new Date().toISOString(),
+          updatedAt: profile.updated_at || new Date().toISOString(),
+          preferences: profile.preferences || {},
+          fitnessProfile: profile.fitness_profile || undefined,
+        };
+      } catch (profileError) {
+        console.error('[Auth] Profile fetch error:', profileError);
+        // Return basic user even if profile fetch fails
+        return basicUser;
+      }
     } finally {
       // Always reset the auth operation flag when completed
       authOperationInProgress = false;
@@ -143,10 +163,6 @@ export const authService = {
   async getUserProfile(userId: string): Promise<User> {
     try {
       // Guard against infinite recursion
-      if (authOperationInProgress) {
-        throw new Error('Authentication already in progress');
-      }
-      authOperationInProgress = true;
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -177,9 +193,6 @@ export const authService = {
         preferences: profile.preferences || {},
         fitnessProfile: profile.fitness_profile || undefined,
       };
-    } finally {
-      // Always reset the auth operation flag when completed
-      authOperationInProgress = false;
     }
   },
 

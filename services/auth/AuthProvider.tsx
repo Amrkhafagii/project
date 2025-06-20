@@ -87,8 +87,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       lastAuthAttempt = now;
       setLoading(true);
       
-      const user = await authService.signIn(email, password);
-      setUser(user);
+      // Add a basic error boundary around auth service calls
+      try {
+        const user = await authService.signIn(email, password);
+        setUser(user);
+      } catch (serviceError) {
+        console.error(`[AuthProvider] Auth service error:`, serviceError);
+        throw serviceError;
+      }
+      
       console.log(`[AuthProvider] SignIn successful for: ${email}`);
       return {};
     } catch (error) {
@@ -104,7 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
       
-      setLoading(false);
       return { error: error instanceof Error ? error : new Error(String(error)) };
     } finally {
       setLoading(false);

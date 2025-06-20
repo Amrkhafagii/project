@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, Platform, StyleSheet, TouchableOpacity, AppState } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 import { router, SplashScreen } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants';
@@ -20,7 +21,7 @@ export default function IndexScreen() {
   const { user, loading } = auth;
   const isFrameworkReady = useFrameworkReady();
   
-  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [networkError, setNetworkError] = useState(null);
 
   useEffect(() => {
     if (!isFrameworkReady || loading) return;
@@ -104,39 +105,6 @@ export default function IndexScreen() {
   }, [user, loading, isFrameworkReady]);
   
   // Handle unexpected errors during auth/navigation
-  useEffect(() => {
-    const handleNetworkError = (error: any) => {
-      console.error('Network error during navigation:', error?.message || error);
-      setNetworkError('Network connection issue. Please check your connection and try again.');
-    };
-    
-    // Platform-specific error handling
-    if (Platform.OS === 'web') {
-      // Web platform: use window.addEventListener
-      window.addEventListener('error', handleNetworkError);
-      
-      return () => {
-        window.removeEventListener('error', handleNetworkError);
-      };
-    } else {
-      // Native platforms (iOS/Android): use AppState for app status changes
-      // This doesn't catch errors the same way, but helps detect when app comes back from background
-      // which is often when network connectivity issues are detected
-      const subscription = AppState.addEventListener('change', (nextAppState) => {
-        if (nextAppState === 'active') {
-          // Check if we have connectivity when app becomes active
-          fetch('https://www.google.com', { method: 'HEAD', timeout: 5000 })
-            .catch((error) => {
-              handleNetworkError(error);
-            });
-        }
-      });
-      
-      return () => {
-        subscription.remove();
-      };
-    };
-  }, []);
 
   // Show loading screen while determining route
   return (

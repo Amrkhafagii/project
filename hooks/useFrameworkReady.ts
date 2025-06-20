@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { Platform } from 'react-native';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -17,7 +18,11 @@ export function useFrameworkReady() {
         console.warn(e);
       } finally {
         setIsReady(true);
-        await SplashScreen.hideAsync();
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.warn("Error hiding splash screen:", e);
+        }
       }
     }
 
