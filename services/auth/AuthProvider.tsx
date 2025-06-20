@@ -2,7 +2,11 @@ import React, { createContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authService } from './authService';
 import { Platform, Alert } from 'react-native';
-import { User, UserRole } from '@/types/auth';
+import { User, UserRole } from '@/types/auth'; 
+
+// Global variable to track login attempts and prevent infinite recursion
+let authInProgress = false;
+let lastAuthAttempt = 0;
 
 interface AuthContextType {
   user: User | null;
@@ -70,8 +74,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string): Promise<{ error?: Error }> => {
     console.log(`[AuthProvider] SignIn attempt for: ${email}`);
-    setLoading(true);
+    
+    // Prevent multiple rapid login attempts that could cause recursion
+    const now = Date.now();
+    if (authInProgress || (now - lastAuthAttempt < 2000)) {
+      console.warn('[AuthProvider] Auth operation already in progress or too frequent');
+      return { error: new Error('Please wait before trying again') };
+    }
+    
     try {
+      authInProgress = true;
+      lastAuthAttempt = now;
+      setLoading(true);
+      
       const user = await authService.signIn(email, password);
       setUser(user);
       console.log(`[AuthProvider] SignIn successful for: ${email}`);
@@ -91,24 +106,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setLoading(false);
       return { error: error instanceof Error ? error : new Error(String(error)) };
+    } finally {
+      setLoading(false);
+      // Add a small delay before allowing another auth attempt
+      setTimeout(() => {
+        authInProgress = false;
+      }, 1000);
     }
   };
 
   const signUp = async (email: string, password: string, profileData?: any): Promise<{ error?: Error }> => {
-    setLoading(true);
+    // Prevent multiple rapid signup attempts that could cause recursion
+    const now = Date.now();
+    if (authInProgress || (now - lastAuthAttempt < 2000)) {
+      console.warn('[AuthProvider] Auth operation already in progress or too frequent');
+      return { error: new Error('Please wait before trying again') };
+    }
+    
     try {
+      authInProgress = true;
+      lastAuthAttempt = now;
+      setLoading(true);
+      
       const user = await authService.signUp(email, password, profileData || {});
       setUser(user);
       return {};
     } catch (error) {
       setLoading(false);
       return { error: error instanceof Error ? error : new Error(String(error)) };
+    } finally {
+      setLoading(false);
+      // Add a small delay before allowing another auth attempt
+      setTimeout(() => {
+        authInProgress = false;
+      }, 1000);
     }
   };
 
   const signOut = async (): Promise<{ error?: Error }> => {
-    setLoading(true);
+    // Prevent multiple rapid logout attempts
+    const now = Date.now();
+    if (authInProgress || (now - lastAuthAttempt < 2000)) {
+      console.warn('[AuthProvider] Auth operation already in progress or too frequent');
+      return { error: new Error('Please wait before trying again') };
+    }
+    
     try {
+      authInProgress = true;
+      lastAuthAttempt = now;
+      setLoading(true);
+      
       await authService.signOut();
       setUser(null);
       console.log('[AuthProvider] SignOut successful');
@@ -118,6 +165,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error instanceof Error ? error : new Error(String(error)) };
     } finally {
       setLoading(false);
+      // Add a small delay before allowing another auth attempt
+      setTimeout(() => {
+        authInProgress = false;
+      }, 1000);
     }
   };
 
@@ -126,6 +177,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     setLoading(true);
     try {
+      if (authInProgress) {
+        console.warn('[AuthProvider] Update profile canceled - auth in progress');
+        throw new Error('Another authentication operation is in progress');
+      }
+      
       const updatedUser = await authService.updateProfile(user.id, updates);
       setUser(updatedUser);
     } catch (error) {
