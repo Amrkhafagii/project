@@ -1,187 +1,269 @@
-import React, { createContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { authService } from './authService';
-import { Platform, Alert } from 'react-native';
-import { User, UserRole } from '@/types/auth'; 
+import React, { createContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { authService } from './AuthService';
+import { User, AuthState, SignInData, SignUpData, AuthError } from '@/types/auth';
+import { logger } from '@/utils/logger';
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: Error }>;
-  signUp: (email: string, password: string, profileData?: any) => Promise<{ error?: Error }>;
-  signOut: () => Promise<{ error?: Error }>;
+interface AuthContextType extends AuthState {
+  signIn: (data: SignInData) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
+  signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error?: Error }>;
+  resetPassword: (email: string) => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
 
+/**
+ * Authentication provider component
+ * Manages authentication state and provides auth methods to the app
+ */
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    session: null,
+    loading: true,
+    initialized: false,
+    error: null,
+  });
+
+  // Initialize authentication state
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log(`[AuthProvider] Initial session check: ${session ? 'Found' : 'Not found'}`);
+        logger.info('Initializing authentication');
         
-        if (session?.user && mounted) {
-          try {
-            const userProfile = await authService.getUserProfile(session.user.id);
-            console.log('[AuthProvider] User profile loaded:', userProfile.email, 'role:', userProfile.role);
-            if (mounted) {
-              setUser(userProfile);
-            }
-          } catch (profileError) {
-            console.error('[AuthProvider] Error fetching user profile:', profileError);
-            if (mounted) {
-              setUser(null);
-            }
-          }
+        const session = await authService.getCurrentSession();
+        
+        if (mounted) {
+          setState({
+            user: session?.user || null,
+            session,
+            loading: false,
+            initialized: true,
+            error: null,
+          });
         }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        logger.error('Failed to initialize auth', { error });
+        
         if (mounted) {
-          setUser(null);
-        }
-      } finally {
-        if (mounted) {
-          console.log('[AuthProvider] Initial loading complete');
-          setLoading(false);
+          setState({
+            user: null,
+            session: null,
+            loading: false,
+            initialized: true,
+            error: error instanceof AuthError ? error : null,
+          });
         }
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        try {
-          console.log(`[AuthProvider] Auth state changed: ${event}`);
-          if (session?.user) {
-            const userProfile = await authService.getUserProfile(session.user.id);
-            console.log('[AuthProvider] User profile updated:', userProfile.email, 'role:', userProfile.role);
-            if (mounted) {
-              setUser(userProfile);
-              setLoading(false);
-            }
-          } else {
-            if (mounted) {
-              setUser(null);
-              setLoading(false);
-            }
-          }
-        } catch (error) {
-          console.error('Error in auth state change:', error);
-          if (mounted) {
-            setUser(null);
-            setLoading(false);
-          }
-        }
+    // Subscribe to auth state changes
+    const unsubscribe = authService.onAuthStateChange((event) => {
+      if (!mounted) return;
+
+      logger.info('Auth state changed', { type: event.type });
+
+      switch (event.type) {
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+        case 'USER_UPDATED':
+          setState(prev => ({
+            ...prev,
+            user: event.session?.user || null,
+            session: event.session,
+            error: null,
+          }));
+          break;
+
+        case 'SIGNED_OUT':
+        case 'SESSION_EXPIRED':
+          setState(prev => ({
+            ...prev,
+            user: null,
+            session: null,
+            error: null,
+          }));
+          break;
       }
-    );
+    });
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<{ error?: Error }> => {
-    console.log(`[AuthProvider] SignIn attempt for: ${email}`);
-    
+  // Sign in method
+  const signIn = useCallback(async (data: SignInData) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
     try {
-      setLoading(true);
-      const user = await authService.signIn(email, password);
-      setUser(user);
-      console.log(`[AuthProvider] SignIn successful for: ${email}`);
-      return {};
-    } catch (error) {
-      console.error(`[AuthProvider] SignIn failed for ${email}:`, error);
+      const session = await authService.signIn(data);
       
-      if (Platform.OS !== 'web') {
-        Alert.alert(
-          'Login Failed',
-          error instanceof Error 
-            ? error.message 
-            : 'Connection failed. Please check your network and try again.'
-        );
-      }
+      setState(prev => ({
+        ...prev,
+        user: session.user,
+        session,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      logger.error('Sign in failed in provider', { error });
       
-      return { error: error instanceof Error ? error : new Error(String(error)) };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, profileData?: any): Promise<{ error?: Error }> => {
-    try {
-      setLoading(true);
-      const user = await authService.signUp(email, password, profileData || {});
-      setUser(user);
-      return {};
-    } catch (error) {
-      return { error: error instanceof Error ? error : new Error(String(error)) };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signOut = async (): Promise<{ error?: Error }> => {
-    try {
-      setLoading(true);
-      await authService.signOut();
-      setUser(null);
-      console.log('[AuthProvider] SignOut successful');
-      return {};
-    } catch (error) {
-      console.error('[AuthProvider] SignOut failed:', error);
-      return { error: error instanceof Error ? error : new Error(String(error)) };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateProfile = async (updates: Partial<User>) => {
-    if (!user) throw new Error('No user logged in');
-    
-    setLoading(true);
-    try {
-      const updatedUser = await authService.updateProfile(user.id, updates);
-      setUser(updatedUser);
-    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof AuthError ? error : null,
+      }));
+      
       throw error;
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
-  const resetPassword = async (email: string): Promise<{ error?: Error }> => {
+  // Sign up method
+  const signUp = useCallback(async (data: SignUpData) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const session = await authService.signUp(data);
+      
+      setState(prev => ({
+        ...prev,
+        user: session.user,
+        session,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      logger.error('Sign up failed in provider', { error });
+      
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof AuthError ? error : null,
+      }));
+      
+      throw error;
+    }
+  }, []);
+
+  // Sign out method
+  const signOut = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      await authService.signOut();
+      
+      setState(prev => ({
+        ...prev,
+        user: null,
+        session: null,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      logger.error('Sign out failed in provider', { error });
+      
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof AuthError ? error : null,
+      }));
+      
+      throw error;
+    }
+  }, []);
+
+  // Update profile method
+  const updateProfile = useCallback(async (updates: Partial<User>) => {
+    if (!state.user) {
+      throw new AuthError('INVALID_TOKEN', 'No user logged in');
+    }
+
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const updatedUser = await authService.updateProfile(updates);
+      
+      setState(prev => ({
+        ...prev,
+        user: updatedUser,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      logger.error('Update profile failed in provider', { error });
+      
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof AuthError ? error : null,
+      }));
+      
+      throw error;
+    }
+  }, [state.user]);
+
+  // Reset password method
+  const resetPassword = useCallback(async (email: string) => {
     try {
       await authService.resetPassword(email);
-      return {};
     } catch (error) {
-      return { error: error instanceof Error ? error : new Error(String(error)) };
+      logger.error('Reset password failed in provider', { error });
+      throw error;
     }
-  };
+  }, []);
+
+  // Refresh session method
+  const refreshSession = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const session = await authService.refreshSession();
+      
+      setState(prev => ({
+        ...prev,
+        user: session?.user || null,
+        session,
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      logger.error('Refresh session failed in provider', { error });
+      
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof AuthError ? error : null,
+      }));
+      
+      throw error;
+    }
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo<AuthContextType>(() => ({
+    ...state,
+    signIn,
+    signUp,
+    signOut,
+    updateProfile,
+    resetPassword,
+    refreshSession,
+  }), [state, signIn, signUp, signOut, updateProfile, resetPassword, refreshSession]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      signIn, 
-      signUp, 
-      signOut,
-      updateProfile,
-      resetPassword
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

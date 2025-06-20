@@ -1,37 +1,31 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/services/auth/AuthProvider';
-import { ErrorBoundary } from '@/app/_components/common/ErrorBoundary';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppProvider } from '@/providers/AppProvider'
+import { AppProvider } from '@/providers/AppProvider';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { Platform, LogBox } from 'react-native';
-
-// Only ignore warnings, don't override fetch
-if (Platform.OS !== 'web') {
-  LogBox.ignoreLogs([
-    'Non-serializable values were found in the navigation state',
-    'VirtualizedLists should never be nested'
-  ]);
-}
+import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function RootLayout() {
-  useFrameworkReady();
+  const isReady = useFrameworkReady();
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <AppProvider>
-          <AuthProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(customer)" />
-              <Stack.Screen name="(restaurant)" />
-              <Stack.Screen name="(driver)" />
-              <Stack.Screen name="(shared)" />
-            </Stack>
-          </AuthProvider>
-        </AppProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <AppProvider>
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </AuthProvider>
+    </AppProvider>
   );
 }
