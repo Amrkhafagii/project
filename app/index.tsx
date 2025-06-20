@@ -1,12 +1,23 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { View, ActivityIndicator, Text } from 'react-native';
+import { router, SplashScreen } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors } from '@/constants';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 export default function IndexScreen() {
-  const { user, loading } = useAuth();
+  // Initialize with default values to prevent errors
+  const auth = { user: null, loading: true };
+  
+  // Safely try to use the auth hook
+  try {
+    Object.assign(auth, useAuth());
+  } catch (error) {
+    console.error('Auth provider not available:', error);
+    // Keep default values and show appropriate UI
+  }
+  
+  const { user, loading } = auth;
   const isFrameworkReady = useFrameworkReady();
 
   useEffect(() => {
@@ -14,13 +25,17 @@ export default function IndexScreen() {
 
     if (!user) {
       // No user, redirect to welcome screen
-      router.replace('/(auth)/welcome');
+      setTimeout(() => {
+        router.replace('/(auth)/welcome');
+      }, 100);
       return;
     }
 
     // Check if user needs to complete role selection
     if (!user.role) {
-      router.replace('/(auth)/role-selection');
+      setTimeout(() => {
+        router.replace('/(auth)/role-selection');
+      }, 100);
       return;
     }
 
@@ -29,51 +44,73 @@ export default function IndexScreen() {
       case 'customer':
         // Check if customer has completed onboarding
         if (!user.onboarded) {
-          router.replace('/(customer)/onboarding');
+          setTimeout(() => {
+            router.replace('/(customer)/onboarding');
+          }, 100);
           return;
         }
-        router.replace('/(customer)/(tabs)');
+        setTimeout(() => {
+          router.replace('/(customer)/(tabs)');
+        }, 100);
         break;
       case 'restaurant':
         // Check if restaurant needs onboarding
         if (!user.onboarded) {
-          router.replace('/(restaurant)/onboarding');
+          setTimeout(() => {
+            router.replace('/(restaurant)/onboarding');
+          }, 100);
           return;
         }
         // Check if restaurant needs onboarding
         if (!user.onboarded) {
-          router.replace('/(restaurant)/onboarding');
+          setTimeout(() => {
+            router.replace('/(restaurant)/onboarding');
+          }, 100);
         } else {
-          router.replace('/(restaurant)/(tabs)');
+          setTimeout(() => {
+            router.replace('/(restaurant)/(tabs)');
+          }, 100);
         }
         break;
       case 'driver':
         // Check if driver needs onboarding
         if (!user.onboarded) {
-          router.replace('/(driver)/onboarding');
+          setTimeout(() => {
+            router.replace('/(driver)/onboarding');
+          }, 100);
           return;
         }
         // Check if driver needs onboarding
         if (!user.onboarded) {
-          router.replace('/(driver)/onboarding');
+          setTimeout(() => {
+            router.replace('/(driver)/onboarding');
+          }, 100);
         } else {
-          router.replace('/(driver)/(tabs)');
+          setTimeout(() => {
+            router.replace('/(driver)/(tabs)');
+          }, 100);
         }
         break;
       default:
-        router.replace('/(auth)/login');
+        setTimeout(() => {
+          router.replace('/(auth)/login');
+        }, 100);
     }
   }, [user, loading, isFrameworkReady]);
 
   // Show loading screen while determining route
   return (
-    <View style={{ 
-      flex: 1, 
-      justifyContent: 'center', 
+    <View style={{
+      flex: 1,
+      justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: Colors.background 
-    }}>
-      <ActivityIndicator size="large" color={Colors.primary} />
+      backgroundColor: Colors.background
+    }}> 
+      {loading && <ActivityIndicator size="large" color={Colors.primary} />}
+      {!loading && (
+        <Text style={{ color: Colors.textSecondary, marginTop: 10 }}>
+          Initializing app...
+        </Text>
+      )}
     </View>
   );
-}
