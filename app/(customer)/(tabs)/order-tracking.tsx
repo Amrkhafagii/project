@@ -12,17 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useLocalSearchParams, useRouter, Link } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Phone, 
-  MessageCircle, 
-  Clock, 
-  CheckCircle, 
-  Package, 
-  Truck, 
-  MapPin, 
-  Home 
-} from 'lucide-react-native';
+import { ArrowLeft, Phone, MessageCircle, Clock, CircleCheck as CheckCircle, Package, Truck, MapPin, Chrome as Home } from 'lucide-react-native';
 import { Colors, Layout } from '@/constants';
 import { getRealTimeManager } from '@/services/realtime/realTimeManager';
 import { Button } from '@/app/_components/common/Button';
