@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { X, Package, Truck, CheckCircle, MessageCircle } from 'lucide-react-native';
+import { X, Package, Truck, CircleCheck as CheckCircle, MessageCircle } from 'lucide-react-native';
 import { Colors, Layout } from '@/constants';
 
 export interface NotificationBannerProps {

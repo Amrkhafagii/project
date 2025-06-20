@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { AuthGuard } from '@/features/shared/components/AuthGuard';
 import { TabBarIcon } from '@/app/_components/navigation/TabBarIcon';
 import { Colors } from '@/constants';
-import { Home, Package, MapPin, DollarSign, User } from 'lucide-react-native';
+import { Chrome as Home, Package, MapPin, DollarSign, User } from 'lucide-react-native';
 
 export default function DriverTabLayout() {
   return (

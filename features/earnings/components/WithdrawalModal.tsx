@@ -11,15 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  X,
-  DollarSign,
-  CreditCard,
-  Building,
-  Smartphone,
-  Check,
-  AlertTriangle,
-} from 'lucide-react-native';
+import { X, DollarSign, CreditCard, Building, Smartphone, Check, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { withdrawalService } from '@/services/earnings/withdrawalService';
 import { WithdrawalMethod, BankDetails, PayPalDetails, DigitalWalletDetails } from '@/types/earnings';
 
