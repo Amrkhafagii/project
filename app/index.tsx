@@ -38,11 +38,21 @@ export default function IndexScreen() {
         // Check if restaurant needs onboarding
         if (!user.onboarded) {
           router.replace('/(restaurant)/onboarding');
+          return;
+        }
+        // Check if restaurant needs onboarding
+        if (!user.onboarded) {
+          router.replace('/(restaurant)/onboarding');
         } else {
           router.replace('/(restaurant)/(tabs)');
         }
         break;
       case 'driver':
+        // Check if driver needs onboarding
+        if (!user.onboarded) {
+          router.replace('/(driver)/onboarding');
+          return;
+        }
         // Check if driver needs onboarding
         if (!user.onboarded) {
           router.replace('/(driver)/onboarding');
