@@ -5,7 +5,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 import { AnalyticsDashboard } from '@/features/restaurant/components/AnalyticsDashboard';
 

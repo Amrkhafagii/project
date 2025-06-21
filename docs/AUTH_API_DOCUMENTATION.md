@@ -142,7 +142,7 @@ unsubscribe();
 React hook for accessing authentication state and methods.
 
 ```typescript
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 
 function MyComponent() {
   const { 

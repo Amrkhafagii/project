@@ -4,7 +4,7 @@ import {
   StyleSheet,
   SafeAreaView
 } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { Colors } from '@/constants';
 import RealTimeOrderList from '@/components/customer/RealTimeOrderList';
 

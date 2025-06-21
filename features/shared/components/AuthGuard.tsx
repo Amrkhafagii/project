@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from './LoadingSpinner';
 import { UserRole } from '@/types/auth';
 

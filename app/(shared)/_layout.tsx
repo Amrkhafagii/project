@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 
 export default function SharedLayout() {

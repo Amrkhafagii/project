@@ -1,6 +1,6 @@
 // Export all auth-related modules
 export { AuthProvider, AuthContext } from './AuthProvider';
-export { useAuth } from './hooks/useAuth';
+export { useAuth } from '@/contexts/AuthContext';
 export { authService, AuthService } from './AuthService';
 
 // Export interfaces for extension

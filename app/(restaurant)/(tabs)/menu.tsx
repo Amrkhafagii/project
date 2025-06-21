@@ -12,7 +12,7 @@ import { Plus, Zap, TrendingUp, DollarSign } from 'lucide-react-native';
 import { InventoryManager } from '@/features/restaurant/components/InventoryManager';
 import { RealTimeInventory } from '@/features/restaurant/components/RealTimeInventory';
 import { MenuIntelligenceDashboard } from '@/features/restaurant/components/MenuIntelligenceDashboard';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function RestaurantMenu() {
   const [activeTab, setActiveTab] = useState<'inventory' | 'realtime' | 'intelligence'>('realtime');

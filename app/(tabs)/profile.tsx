@@ -21,7 +21,7 @@ import {
   LogOut,
   ChevronRight
 } from 'lucide-react-native';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { OrderStatusBadge } from '@/features/shared/components/OrderStatusBadge';
 
 export default function ProfileScreen() {

@@ -6,7 +6,7 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { UserRole, AuthFormData } from '@/types/auth';
 import { Colors, Layout } from '@/constants';
 import  Button  from '@/app/_components/common/Button';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 import { AdvancedCustomerSupport } from '@/features/shared/components/AdvancedCustomerSupport';
 

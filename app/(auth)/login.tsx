@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { Colors, Layout } from '@/constants';
 import  Button  from '@/app/_components/common/Button';
 import AuthForm from '@/app/_components/auth/AuthForm';

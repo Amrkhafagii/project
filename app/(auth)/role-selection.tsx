@@ -6,7 +6,7 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/types/auth';
 import { Colors, Layout } from '@/constants';
 import RoleSelector  from '@/app/_components/auth/RoleSelector';
