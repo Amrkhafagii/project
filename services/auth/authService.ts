@@ -1,5 +1,5 @@
 import { IAuthRepository } from './interfaces/IAuthRepository';
-import { SupabaseAuthRepository } from './repositories/SupabaseAuthRepository';
+import { EnhancedSupabaseAuthRepository } from './repositories/EnhancedSupabaseAuthRepository';
 import { 
   User, 
   SignInData, 
@@ -14,10 +14,10 @@ import { logger } from '@/utils/logger';
 import { EventEmitter } from '@/utils/EventEmitter';
 import { CacheService } from '@/services/cache/CacheService';
 import { Platform } from 'react-native';
+import { NetworkUtils } from '@/utils/network/networkUtils';
 
 /**
- * Main authentication service that orchestrates all auth operations
- * Implements facade pattern to provide a clean API for authentication
+ * Main authentication service with enhanced error handling
  */
 export class AuthService {
   private static instance: AuthService;
@@ -27,7 +27,7 @@ export class AuthService {
   private sessionCheckInterval?: NodeJS.Timeout;
 
   private constructor(repository?: IAuthRepository) {
-    this.repository = repository || new SupabaseAuthRepository();
+    this.repository = repository || new EnhancedSupabaseAuthRepository();
     this.eventEmitter = new EventEmitter();
     this.cache = new CacheService();
     this.startSessionMonitoring();
@@ -41,21 +41,47 @@ export class AuthService {
   }
 
   /**
-   * Sign in a user with email and password
+   * Sign in a user with enhanced error handling
    */
   async signIn(data: SignInData): Promise<AuthSession> {
+    const startTime = Date.now();
+    const requestId = `signin_${startTime}`;
+
     try {
-      logger.info('Attempting sign in', { email: data.email });
+      logger.info(`[${requestId}] Attempting sign in`, { 
+        email: data.email,
+        platform: Platform.OS,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Pre-flight network check
+      const networkInfo = await NetworkUtils.getNetworkInfo();
+      logger.debug(`[${requestId}] Network status`, networkInfo);
+
+      if (!networkInfo?.isConnected) {
+        throw new AuthError(
+          AuthErrorCode.NETWORK_ERROR,
+          'No internet connection. Please check your network settings and try again.'
+        );
+      }
 
       // Check cache for existing session
       const cachedSession = await this.cache.get<AuthSession>(`session:${data.email}`);
       if (cachedSession && this.isSessionValid(cachedSession)) {
-        logger.info('Using cached session', { email: data.email });
+        logger.info(`[${requestId}] Using cached session`, { email: data.email });
         return cachedSession;
       }
 
-      // Perform sign in
+      // Perform sign in with detailed logging
+      logger.debug(`[${requestId}] Calling repository.signIn`);
       const session = await this.repository.signIn(data);
+      
+      const duration = Date.now() - startTime;
+      logger.info(`[${requestId}] Sign in successful`, {
+        email: data.email,
+        userId: session.user.id,
+        duration: `${duration}ms`,
+      });
 
       // Cache the session
       await this.cache.set(`session:${session.user.email}`, session, {
@@ -68,35 +94,85 @@ export class AuthService {
       return session;
 
     } catch (error) {
-      logger.error('Sign in failed', { error, email: data.email });
+      const duration = Date.now() - startTime;
+      
+      logger.error(`[${requestId}] Sign in failed`, { 
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          code: (error as AuthError).code,
+        } : error,
+        email: data.email,
+        duration: `${duration}ms`,
+        platform: Platform.OS,
+        networkInfo: await NetworkUtils.getNetworkInfo(),
+      });
       
       // Handle specific error cases
       if (error instanceof AuthError) {
-        if (error.code === AuthErrorCode.NETWORK_ERROR && Platform.OS !== 'web') {
-          // Attempt offline mode if supported
-          const offlineSession = await this.attemptOfflineSignIn(data.email);
-          if (offlineSession) {
-            return offlineSession;
-          }
+        // Add platform-specific error details
+        if (Platform.OS === 'ios' && error.code === AuthErrorCode.NETWORK_ERROR) {
+          error.message += '\n\nOn iOS, please ensure:\n- Wi-Fi or cellular data is enabled\n- The app has network permissions\n- No VPN is blocking the connection';
+        } else if (Platform.OS === 'android' && error.code === AuthErrorCode.NETWORK_ERROR) {
+          error.message += '\n\nOn Android, please ensure:\n- Internet permission is granted\n- No firewall is blocking the app\n- Data saver mode is not restricting the app';
         }
+        
         throw error;
       }
 
       throw new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        'Sign in failed. Please try again.'
+        `Sign in failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
 
   /**
-   * Register a new user
+   * Register a new user with enhanced error handling
    */
   async signUp(data: SignUpData): Promise<AuthSession> {
-    try {
-      logger.info('Attempting sign up', { email: data.email, role: data.role });
+    const startTime = Date.now();
+    const requestId = `signup_${startTime}`;
 
+    try {
+      logger.info(`[${requestId}] Attempting sign up`, { 
+        email: data.email, 
+        role: data.role,
+        platform: Platform.OS,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Pre-flight network check
+      const networkInfo = await NetworkUtils.getNetworkInfo();
+      logger.debug(`[${requestId}] Network status`, networkInfo);
+
+      if (!networkInfo?.isConnected) {
+        throw new AuthError(
+          AuthErrorCode.NETWORK_ERROR,
+          'No internet connection. Please check your network settings and try again.'
+        );
+      }
+
+      // Validate input data
+      if (!data.email || !data.password) {
+        throw new AuthError(
+          AuthErrorCode.VALIDATION_ERROR,
+          'Email and password are required'
+        );
+      }
+
+      logger.debug(`[${requestId}] Calling repository.signUp`);
       const session = await this.repository.signUp(data);
+
+      const duration = Date.now() - startTime;
+      logger.info(`[${requestId}] Sign up successful`, {
+        email: data.email,
+        userId: session.user.id,
+        role: data.role,
+        duration: `${duration}ms`,
+        emailConfirmed: session.user.emailVerified,
+      });
 
       // Cache the session if auto-confirmed
       if (session.tokens.accessToken) {
@@ -111,10 +187,29 @@ export class AuthService {
       return session;
 
     } catch (error) {
-      logger.error('Sign up failed', { error, email: data.email });
-      throw error instanceof AuthError ? error : new AuthError(
+      const duration = Date.now() - startTime;
+      
+      logger.error(`[${requestId}] Sign up failed`, { 
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          code: (error as AuthError).code,
+        } : error,
+        email: data.email,
+        role: data.role,
+        duration: `${duration}ms`,
+        platform: Platform.OS,
+        networkInfo: await NetworkUtils.getNetworkInfo(),
+      });
+
+      if (error instanceof AuthError) {
+        throw error;
+      }
+
+      throw new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        'Sign up failed. Please try again.'
+        `Sign up failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
@@ -317,9 +412,16 @@ export class AuthService {
    */
   async testConnection(): Promise<boolean> {
     try {
+      const isConnected = await NetworkUtils.isConnected();
+      if (!isConnected) {
+        logger.warn('No network connection for auth test');
+        return false;
+      }
+
       const session = await this.repository.getCurrentSession();
       return session !== null;
-    } catch {
+    } catch (error) {
+      logger.error('Auth connection test failed', { error });
       return false;
     }
   }
@@ -360,18 +462,6 @@ export class AuthService {
         }
       }
     }, 5 * 60 * 1000);
-  }
-
-  private async attemptOfflineSignIn(email: string): Promise<AuthSession | null> {
-    // Check if we have a cached session that might still be valid
-    const cachedSession = await this.cache.get<AuthSession>(`session:${email}`);
-    
-    if (cachedSession) {
-      logger.info('Using offline session', { email });
-      return cachedSession;
-    }
-    
-    return null;
   }
 
   // Cleanup method

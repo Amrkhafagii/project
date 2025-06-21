@@ -1,69 +1,74 @@
 import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import { logger } from '@/utils/logger';
 
-// Get Supabase URL and anon key from environment variables
+// Get Supabase configuration
 const supabaseUrl = 'https://zcqsacyaboghebsboeys.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjcXNhY3lhYm9naGVic2JvZXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzMzU2NjEsImV4cCI6MjA2NTkxMTY2MX0.CXpMS-CAT2f2hzvxC4uiJF6kVyPDoXnqixp0QlmAhlo';
 
-// Special handling for iOS/Android
-const isPlatformNative = Platform.OS === 'ios' || Platform.OS === 'android';
+// Log initialization
+logger.info('Initializing Supabase client', {
+  url: supabaseUrl,
+  platform: Platform.OS,
+  hasAnonKey: !!supabaseAnonKey,
+});
 
-// Configure Supabase client with platform-specific settings
+// Create Supabase client with enhanced error handling
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    // Use AsyncStorage for session persistence on mobile platforms
-    storage: isPlatformNative ? {
-      getItem: async (key) => {
-        try {
-          const value = await AsyncStorage.getItem(key);
-          return value;
-        } catch (error) {
-          console.error('[Supabase] AsyncStorage getItem error:', error);
-          return null;
-        }
-      },
-      setItem: async (key, value) => {
-        try {
-          await AsyncStorage.setItem(key, value);
-        } catch (error) {
-          console.error('[Supabase] AsyncStorage setItem error:', error);
-        }
-      },
-      removeItem: async (key) => {
-        try {
-          await AsyncStorage.removeItem(key);
-        } catch (error) {
-          console.error('[Supabase] AsyncStorage removeItem error:', error);
-        }
-      },
-    } : undefined,
+    // Add debug mode for development
+    debug: __DEV__,
   },
+  // Add global fetch override for better error handling
   global: {
-    headers: {
-      'X-Client-Info': 'food-delivery-app',
+    fetch: async (url, options) => {
+      logger.debug('Supabase fetch request', {
+        url,
+        method: options?.method,
+        headers: options?.headers,
+      });
+
+      try {
+        const response = await fetch(url, options);
+        
+        logger.debug('Supabase fetch response', {
+          url,
+          status: response.status,
+          ok: response.ok,
+        });
+
+        return response;
+      } catch (error) {
+        logger.error('Supabase fetch error', {
+          url,
+          error: error instanceof Error ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          } : error,
+        });
+        throw error;
+      }
     },
-    // Remove the custom fetch that uses AbortSignal.timeout
-    // Let Supabase use its default fetch implementation
   },
 });
 
-// Test connection on initialization
-supabase.auth.getSession()
-  .then(({ data, error }) => {
-    if (error) {
-      console.error('[Supabase] Initial connection test failed:', error);
-    } else {
-      console.log('[Supabase] Connection successful, session:', data.session ? 'exists' : 'none');
-    }
-  })
-  .catch((error) => {
-    console.error('[Supabase] Connection test error:', error);
+// Add auth state change listener for debugging
+supabase.auth.onAuthStateChange((event, session) => {
+  logger.info('Auth state changed', {
+    event,
+    hasSession: !!session,
+    userId: session?.user?.id,
   });
+});
 
-// Log Supabase connection info for debugging
-console.log(`[Supabase] Initialized client for platform: ${Platform.OS}`);
-console.log(`[Supabase] URL: ${supabaseUrl}`);
+// Export the URL for debugging
+export const supabaseConfig = {
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey,
+};

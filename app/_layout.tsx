@@ -1,31 +1,40 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { AuthProvider } from '@/services/auth/AuthProvider';
-import { AppProvider } from '@/providers/AppProvider';
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator } from 'react-native';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { NetworkUtils } from '@/utils/network/networkUtils';
+import { logger } from '@/utils/logger';
+import { Alert } from 'react-native';
 
 export default function RootLayout() {
-  const isReady = useFrameworkReady();
+  useEffect(() => {
+    // Monitor network connectivity
+    const unsubscribe = NetworkUtils.subscribeToNetworkChanges((isConnected) => {
+      if (!isConnected) {
+        Alert.alert(
+          'No Internet Connection',
+          'Please check your internet connection and try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    });
 
-  if (!isReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+    // Initial network check
+    NetworkUtils.isConnected().then((isConnected) => {
+      logger.info('Initial network status', { isConnected });
+    });
+
+    return unsubscribe;
+  }, []);
 
   return (
-    <AppProvider>
+    <ErrorBoundary>
       <AuthProvider>
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack>
       </AuthProvider>
-    </AppProvider>
+    </ErrorBoundary>
   );
 }
