@@ -22,7 +22,7 @@ import {
   Star,
   Award,
 } from 'lucide-react-native';
-import { useAuth } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();

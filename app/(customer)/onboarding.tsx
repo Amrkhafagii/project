@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Button } from '@/app/_components/common/Button';
+import  Button  from '@/app/_components/common/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors, Layout } from '@/constants';
 import { TriangleAlert as AlertTriangle, ChevronRight, Image as ImageIcon, MapPin, User } from 'lucide-react-native';

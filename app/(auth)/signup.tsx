@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
-import { useAuth } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 
 export default function SignUpScreen() {

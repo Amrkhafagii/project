@@ -7,8 +7,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Colors, Layout } from '@/constants';
-import { Button } from '@/app/_components/common/Button';
-import { AuthLayout } from '@/app/_components/auth/AuthLayout';
+import  Button  from '@/app/_components/common/Button';
+import AuthLayout from '@/app/_components/auth/AuthLayout';
 
 export default function WelcomeScreen() {
   const handleGetStarted = useCallback(() => {

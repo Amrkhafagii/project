@@ -11,9 +11,9 @@ import {
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors, Layout } from '@/constants';
-import { Button } from '@/app/_components/common/Button';
-import { AuthForm } from '@/app/_components/auth/AuthForm';
-import { AuthLayout } from '@/app/_components/auth/AuthLayout';
+import  Button  from '@/app/_components/common/Button';
+import AuthForm from '@/app/_components/auth/AuthForm';
+import AuthLayout from '@/app/_components/auth/AuthLayout';
 import { validateAuthForm } from '@/utils/auth/validation';
 import { AuthFormData } from '@/types/auth';
 

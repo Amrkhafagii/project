@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, ChartBar as BarChart3, Users, TrendingUp, Package, Clock, DollarSign, MapPin } from 'lucide-react-native';
-import { useAuth } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { useRestaurantOrders } from '@/services/restaurant/restaurantOrderService';
 import { OrderCard } from '@/features/restaurant/components';
 import { OrderStatusBadge } from '@/features/shared/components/OrderStatusBadge';

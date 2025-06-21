@@ -9,10 +9,10 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole, AuthFormData } from '@/types/auth';
 import { Colors, Layout } from '@/constants';
-import { Button } from '@/app/_components/common/Button';
-import { AuthForm } from '@/app/_components/auth/AuthForm';
-import { AuthLayout } from '@/app/_components/auth/AuthLayout';
-import { RoleSelector } from '@/app/_components/auth/RoleSelector';
+import  Button  from '@/app/_components/common/Button';
+import AuthForm from '@/app/_components/auth/AuthForm';
+import AuthLayout from '@/app/_components/auth/AuthLayout';
+import RoleSelector  from '@/app/_components/auth/RoleSelector';
 import { validateAuthForm } from '@/utils/auth/validation';
 
 export default function RegisterScreen() {

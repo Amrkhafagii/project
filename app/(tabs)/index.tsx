@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MapPin, Search, Star, Flame } from 'lucide-react-native';
-import { useAuth } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { RestaurantCard } from '@/features/customer/components/RestaurantCard';
 import { MealCard } from '@/features/customer/components/MealCard';
 import { getCurrentLocation } from '@/services/location/locationService';

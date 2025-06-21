@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors, Layout } from '@/constants';
 import { Card } from '@/app/_components/common/Card';
-import { Button } from '@/app/_components/common/Button';
+import  Button  from '@/app/_components/common/Button';
 import { 
   Bell, 
   Shield, 

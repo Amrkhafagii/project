@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Tag, Plus, X, Calendar, ChevronDown, CreditCard as Edit2, Trash2, ChartBar as BarChart2, Percent, Package, Check, Info } from 'lucide-react-native';
 import { Colors, Layout } from '@/constants';
 import { Card } from '@/app/_components/common/Card';
-import { Button } from '@/app/_components/common/Button';
+import  Button  from '@/app/_components/common/Button';
 
 // Mock types
 type PromotionType = 'percentage' | 'fixed' | 'bogo' | 'bundle' | 'loyalty';

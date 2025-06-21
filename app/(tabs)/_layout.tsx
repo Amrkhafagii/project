@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useAuth } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 import { Chrome as Home, Search, ShoppingCart, Activity, User } from 'lucide-react-native';
 

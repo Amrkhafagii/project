@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useAuth } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/features/shared/components/LoadingSpinner';
 import { Truck } from 'lucide-react-native';
 

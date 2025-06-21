@@ -9,10 +9,10 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
 import { Colors, Layout } from '@/constants';
-import { RoleSelector } from '@/app/_components/auth/RoleSelector';
-import { Button } from '@/app/_components/common/Button';
-import { AuthLayout } from '@/app/_components/auth/AuthLayout';
-import { Avatar } from '@/app/_components/common/Avatar';
+import RoleSelector  from '@/app/_components/auth/RoleSelector';
+import  Button  from '@/app/_components/common/Button';
+import AuthLayout from '@/app/_components/auth/AuthLayout';
+import  Avatar  from '@/app/_components/common/Avatar';
 
 export default function RoleSelectionScreen() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('customer');

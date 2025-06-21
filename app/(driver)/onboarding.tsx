@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors, Layout } from '@/constants';
-import { Button } from '@/app/_components/common/Button';
+import  Button  from '@/app/_components/common/Button';
 import { Car, User, Wallet, Clock, Camera, Phone, FileCheck, Shield, CreditCard, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 
 const ONBOARDING_STEPS = [

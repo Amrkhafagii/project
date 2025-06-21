@@ -15,7 +15,7 @@ import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { ArrowLeft, Phone, MessageCircle, Clock, CircleCheck as CheckCircle, Package, Truck, MapPin, Chrome as Home } from 'lucide-react-native';
 import { Colors, Layout } from '@/constants';
 import { getRealTimeManager } from '@/services/realtime/realTimeManager';
-import { Button } from '@/app/_components/common/Button';
+import  Button  from '@/app/_components/common/Button';
 import { Card } from '@/app/_components/common/Card';
 
 const { width } = Dimensions.get('window');
