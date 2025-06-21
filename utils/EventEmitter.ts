@@ -1,9 +1,5 @@
 type EventHandler<T = any> = (data: T) => void;
 
-/**
- * Simple event emitter for pub/sub pattern
- * Used for decoupled communication between services
- */
 export class EventEmitter<T = any> {
   private events: Map<string, Set<EventHandler<T>>> = new Map();
 
@@ -11,48 +7,31 @@ export class EventEmitter<T = any> {
     if (!this.events.has(event)) {
       this.events.set(event, new Set());
     }
-
+    
     this.events.get(event)!.add(handler);
 
     // Return unsubscribe function
     return () => {
-      this.off(event, handler);
+      const handlers = this.events.get(event);
+      if (handlers) {
+        handlers.delete(handler);
+        if (handlers.size === 0) {
+          this.events.delete(event);
+        }
+      }
     };
   }
 
-  off(event: string, handler: EventHandler<T>): void {
-    const handlers = this.events.get(event);
-    if (handlers) {
-      handlers.delete(handler);
-      if (handlers.size === 0) {
-        this.events.delete(event);
-      }
-    }
-  }
-
   emit(event: string, data: T): void {
-    // Emit to specific event handlers
     const handlers = this.events.get(event);
     if (handlers) {
-      handlers.forEach(handler => {
-        try {
-          handler(data);
-        } catch (error) {
-          console.error('Error in event handler:', error);
-        }
-      });
+      handlers.forEach(handler => handler(data));
     }
 
-    // Emit to wildcard handlers
+    // Also emit to wildcard listeners
     const wildcardHandlers = this.events.get('*');
     if (wildcardHandlers) {
-      wildcardHandlers.forEach(handler => {
-        try {
-          handler(data);
-        } catch (error) {
-          console.error('Error in wildcard event handler:', error);
-        }
-      });
+      wildcardHandlers.forEach(handler => handler(data));
     }
   }
 
@@ -62,9 +41,5 @@ export class EventEmitter<T = any> {
     } else {
       this.events.clear();
     }
-  }
-
-  listenerCount(event: string): number {
-    return this.events.get(event)?.size || 0;
   }
 }
