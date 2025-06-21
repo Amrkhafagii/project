@@ -1,4 +1,5 @@
 import { IAuthRepository } from './interfaces/IAuthRepository';
+import { IAuthService } from './interfaces/IAuthService';
 import { EnhancedSupabaseAuthRepository } from './repositories/EnhancedSupabaseAuthRepository';
 import { 
   User, 
@@ -17,9 +18,9 @@ import { Platform } from 'react-native';
 import { NetworkUtils } from '@/utils/network/networkUtils';
 
 /**
- * Main authentication service with enhanced error handling
+ * Main authentication service implementing business logic
  */
-export class AuthService {
+export class AuthService implements IAuthService {
   private static instance: AuthService;
   private repository: IAuthRepository;
   private eventEmitter: EventEmitter<AuthEvent>;
@@ -40,9 +41,6 @@ export class AuthService {
     return AuthService.instance;
   }
 
-  /**
-   * Sign in a user with enhanced error handling
-   */
   async signIn(data: SignInData): Promise<AuthSession> {
     const startTime = Date.now();
     const requestId = `signin_${startTime}`;
@@ -72,7 +70,7 @@ export class AuthService {
         return cachedSession;
       }
 
-      // Perform sign in with detailed logging
+      // Perform sign in
       logger.debug(`[${requestId}] Calling repository.signIn`);
       const session = await this.repository.signIn(data);
       
@@ -128,9 +126,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Register a new user with enhanced error handling
-   */
   async signUp(data: SignUpData): Promise<AuthSession> {
     const startTime = Date.now();
     const requestId = `signup_${startTime}`;
@@ -214,9 +209,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Sign out the current user
-   */
   async signOut(): Promise<void> {
     try {
       const session = await this.getCurrentSession();
@@ -236,9 +228,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Get the current authenticated session
-   */
   async getCurrentSession(): Promise<AuthSession | null> {
     try {
       const session = await this.repository.getCurrentSession();
@@ -255,17 +244,11 @@ export class AuthService {
     }
   }
 
-  /**
-   * Get the current authenticated user
-   */
   async getCurrentUser(): Promise<User | null> {
     const session = await this.getCurrentSession();
     return session?.user || null;
   }
 
-  /**
-   * Refresh the current session
-   */
   async refreshSession(): Promise<AuthSession | null> {
     try {
       const currentSession = await this.getCurrentSession();
@@ -306,9 +289,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Update user profile
-   */
   async updateProfile(updates: Partial<User>): Promise<User> {
     try {
       const session = await this.getCurrentSession();
@@ -350,9 +330,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Request password reset
-   */
   async resetPassword(email: string): Promise<void> {
     try {
       await this.repository.resetPassword(email);
@@ -366,9 +343,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * Update user password
-   */
   async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
     try {
       const session = await this.getCurrentSession();
@@ -398,18 +372,10 @@ export class AuthService {
     }
   }
 
-  /**
-   * Subscribe to authentication events
-   */
-  onAuthStateChange(
-    callback: (event: AuthEvent) => void
-  ): () => void {
+  onAuthStateChange(callback: (event: AuthEvent) => void): () => void {
     return this.eventEmitter.on('*', callback);
   }
 
-  /**
-   * Test authentication connection
-   */
   async testConnection(): Promise<boolean> {
     try {
       const isConnected = await NetworkUtils.isConnected();

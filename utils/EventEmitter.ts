@@ -1,38 +1,40 @@
-type EventHandler<T = any> = (data: T) => void;
+/**
+ * Generic event emitter for pub/sub pattern
+ */
+export class EventEmitter<T> {
+  private events: Map<string, Set<(data: T) => void>> = new Map();
 
-export class EventEmitter<T = any> {
-  private events: Map<string, Set<EventHandler<T>>> = new Map();
-
-  on(event: string, handler: EventHandler<T>): () => void {
+  on(event: string, callback: (data: T) => void): () => void {
     if (!this.events.has(event)) {
       this.events.set(event, new Set());
     }
     
-    this.events.get(event)!.add(handler);
-
+    this.events.get(event)!.add(callback);
+    
     // Return unsubscribe function
     return () => {
-      const handlers = this.events.get(event);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          this.events.delete(event);
-        }
-      }
+      this.events.get(event)?.delete(callback);
     };
   }
 
   emit(event: string, data: T): void {
-    const handlers = this.events.get(event);
-    if (handlers) {
-      handlers.forEach(handler => handler(data));
-    }
-
-    // Also emit to wildcard listeners
-    const wildcardHandlers = this.events.get('*');
-    if (wildcardHandlers) {
-      wildcardHandlers.forEach(handler => handler(data));
-    }
+    // Emit to specific event listeners
+    this.events.get(event)?.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`Error in event listener for ${event}:`, error);
+      }
+    });
+    
+    // Emit to wildcard listeners
+    this.events.get('*')?.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error('Error in wildcard event listener:', error);
+      }
+    });
   }
 
   removeAllListeners(event?: string): void {

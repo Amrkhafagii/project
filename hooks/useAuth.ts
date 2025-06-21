@@ -1,12 +1,3 @@
-import { useContext } from 'react';
-import { AuthContext } from '@/services/auth/AuthProvider';
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  
-  return context;
-}
+// This file now simply re-exports from the auth service
+// This maintains backward compatibility while centralizing the auth logic
+export { useAuth } from '@/services/auth/hooks/useAuth';

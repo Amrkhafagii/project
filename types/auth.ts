@@ -1,118 +1,113 @@
-export type UserRole = 'customer' | 'restaurant' | 'driver' | 'admin';
+// User roles
+export type UserRole = 'customer' | 'driver' | 'restaurant' | 'admin';
 
+// User interface
 export interface User {
   id: string;
   email: string;
-  role?: UserRole;
-  fullName?: string;
-  phoneNumber?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface AuthFormData {
-  email: string;
-  password?: string;
-  confirmPassword?: string;
-  fullName?: string;
-  phoneNumber?: string;
-}
-
-export interface AuthState {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-}
-
-export interface SignUpMetadata {
+  role: UserRole;
   fullName: string;
   phoneNumber: string;
-  role: UserRole;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface UpdateProfileData {
-  fullName?: string;
-  phoneNumber?: string;
-  role?: UserRole;
+// Authentication tokens
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
-// New type definitions for auth service
+// Authentication session
+export interface AuthSession {
+  sessionId: string;
+  user: User;
+  tokens: AuthTokens;
+}
+
+// Sign in data
 export interface SignInData {
   email: string;
   password: string;
-  deviceInfo?: DeviceInfo;
 }
 
+// Sign up data
 export interface SignUpData {
   email: string;
   password: string;
   fullName: string;
   phoneNumber: string;
   role: UserRole;
-  deviceInfo?: DeviceInfo;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  tokenType: string;
+// Sign up metadata (for backward compatibility)
+export interface SignUpMetadata {
+  fullName: string;
+  phoneNumber: string;
+  role: UserRole;
 }
 
-export interface AuthSession {
-  user: User;
-  tokens: AuthTokens;
-  sessionId: string;
-  expiresAt: string;
+// Update profile data
+export interface UpdateProfileData {
+  fullName?: string;
+  phoneNumber?: string;
+  role?: UserRole;
 }
 
-export interface DeviceInfo {
-  platform: string;
-  deviceId?: string;
-  appVersion?: string;
-  osVersion?: string;
-}
-
-export interface SecurityConfig {
-  maxLoginAttempts: number;
-  lockoutDuration: number;
-  sessionTimeout: number;
-  requireEmailVerification: boolean;
-  allowMultipleSessions: boolean;
-}
-
+// Auth error codes
 export enum AuthErrorCode {
+  // Authentication errors
   INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
-  USER_NOT_FOUND = 'USER_NOT_FOUND',
-  EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED',
-  ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
   INVALID_TOKEN = 'INVALID_TOKEN',
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
   REFRESH_TOKEN_EXPIRED = 'REFRESH_TOKEN_EXPIRED',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+  
+  // User errors
+  USER_NOT_FOUND = 'USER_NOT_FOUND',
+  USER_EXISTS = 'USER_EXISTS',
+  USER_DISABLED = 'USER_DISABLED',
+  
+  // Validation errors
+  INVALID_EMAIL = 'INVALID_EMAIL',
+  WEAK_PASSWORD = 'WEAK_PASSWORD',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  
+  // Operation errors
+  SIGNUP_FAILED = 'SIGNUP_FAILED',
+  PROFILE_CREATION_FAILED = 'PROFILE_CREATION_FAILED',
+  UPDATE_FAILED = 'UPDATE_FAILED',
+  
+  // Network errors
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  TIMEOUT_ERROR = 'TIMEOUT_ERROR',
+  
+  // Generic errors
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
 
+// Auth error class
 export class AuthError extends Error {
   code: AuthErrorCode;
   
   constructor(code: AuthErrorCode, message: string) {
     super(message);
-    this.code = code;
     this.name = 'AuthError';
+    this.code = code;
   }
 }
 
+// Auth event types
 export type AuthEventType = 
   | 'SIGNED_IN'
   | 'SIGNED_OUT'
-  | 'TOKEN_REFRESHED'
   | 'USER_UPDATED'
+  | 'TOKEN_REFRESHED'
   | 'SESSION_EXPIRED'
   | 'PASSWORD_RESET';
 
+// Auth event
 export interface AuthEvent {
   type: AuthEventType;
   session: AuthSession | null;

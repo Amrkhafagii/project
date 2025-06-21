@@ -1,15 +1,19 @@
-import { supabase } from '@/services/supabase';
-import { IAuthRepository } from '../interfaces/IAuthRepository';
 import { 
   User, 
   SignInData, 
   SignUpData, 
-  AuthSession, 
+  AuthSession,
   AuthTokens,
   AuthError,
-  AuthErrorCode 
+  AuthErrorCode
 } from '@/types/auth';
+import { IAuthRepository } from '../interfaces/IAuthRepository';
+import { supabase } from '@/services/supabase';
+import { logger } from '@/utils/logger';
 
+/**
+ * Supabase implementation of the authentication repository
+ */
 export class SupabaseAuthRepository implements IAuthRepository {
   async signIn(data: SignInData): Promise<AuthSession> {
     try {
@@ -19,54 +23,22 @@ export class SupabaseAuthRepository implements IAuthRepository {
       });
 
       if (error) {
-        throw new AuthError(
-          AuthErrorCode.INVALID_CREDENTIALS,
-          error.message
-        );
+        throw this.mapSupabaseError(error);
       }
 
       if (!authData.session || !authData.user) {
         throw new AuthError(
           AuthErrorCode.INVALID_CREDENTIALS,
-          'Invalid credentials'
+          'Invalid login credentials'
         );
       }
 
-      // Fetch user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      const user: User = {
-        id: authData.user.id,
-        email: authData.user.email!,
-        role: profile?.role || 'customer',
-        fullName: profile?.full_name,
-        phoneNumber: profile?.phone_number,
-        createdAt: authData.user.created_at,
-        updatedAt: profile?.updated_at,
-      };
-
-      return {
-        user,
-        tokens: {
-          accessToken: authData.session.access_token,
-          refreshToken: authData.session.refresh_token!,
-          expiresIn: authData.session.expires_in!,
-          tokenType: authData.session.token_type!,
-        },
-        sessionId: authData.session.access_token,
-        expiresAt: new Date(authData.session.expires_at!).toISOString(),
-      };
+      return this.mapToAuthSession(authData.session, authData.user);
     } catch (error) {
-      if (error instanceof AuthError) {
-        throw error;
-      }
-      throw new AuthError(
+      logger.error('Repository signIn error', { error });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        'Sign in failed'
+        'Failed to sign in'
       );
     }
   }
@@ -78,191 +50,219 @@ export class SupabaseAuthRepository implements IAuthRepository {
         password: data.password,
         options: {
           data: {
-            fullName: data.fullName,
-            phoneNumber: data.phoneNumber,
+            full_name: data.fullName,
+            phone_number: data.phoneNumber,
             role: data.role,
           },
         },
       });
 
       if (error) {
-        throw new AuthError(
-          AuthErrorCode.VALIDATION_ERROR,
-          error.message
-        );
+        throw this.mapSupabaseError(error);
       }
 
       if (!authData.user) {
         throw new AuthError(
-          AuthErrorCode.UNKNOWN_ERROR,
-          'Sign up failed'
+          AuthErrorCode.SIGNUP_FAILED,
+          'Failed to create account'
         );
       }
 
-      // Create profile
-      await supabase.from('profiles').insert({
-        id: authData.user.id,
-        email: data.email,
-        full_name: data.fullName,
-        phone_number: data.phoneNumber,
-        role: data.role,
-      });
+      // Create profile in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: data.email,
+          full_name: data.fullName,
+          phone_number: data.phoneNumber,
+          role: data.role,
+        });
 
-      const user: User = {
-        id: authData.user.id,
-        email: authData.user.email!,
-        role: data.role,
-        fullName: data.fullName,
-        phoneNumber: data.phoneNumber,
-        createdAt: authData.user.created_at,
-      };
+      if (profileError) {
+        // Rollback auth user if profile creation fails
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        throw new AuthError(
+          AuthErrorCode.PROFILE_CREATION_FAILED,
+          'Failed to create user profile'
+        );
+      }
 
-      // If session exists (auto-confirmed), return it
-      if (authData.session) {
+      // If no session (email confirmation required), create a partial session
+      if (!authData.session) {
         return {
-          user,
+          sessionId: authData.user.id,
+          user: await this.mapToUser(authData.user),
           tokens: {
-            accessToken: authData.session.access_token,
-            refreshToken: authData.session.refresh_token!,
-            expiresIn: authData.session.expires_in!,
-            tokenType: authData.session.token_type!,
+            accessToken: '',
+            refreshToken: '',
+            expiresIn: 0,
           },
-          sessionId: authData.session.access_token,
-          expiresAt: new Date(authData.session.expires_at!).toISOString(),
         };
       }
 
-      // Return partial session for unconfirmed users
-      return {
-        user,
-        tokens: {
-          accessToken: '',
-          refreshToken: '',
-          expiresIn: 0,
-          tokenType: 'bearer',
-        },
-        sessionId: '',
-        expiresAt: new Date().toISOString(),
-      };
+      return this.mapToAuthSession(authData.session, authData.user);
     } catch (error) {
-      if (error instanceof AuthError) {
-        throw error;
-      }
-      throw new AuthError(
+      logger.error('Repository signUp error', { error });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        'Sign up failed'
+        'Failed to sign up'
       );
     }
   }
 
   async signOut(sessionId: string): Promise<void> {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw new AuthError(
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw this.mapSupabaseError(error);
+      }
+    } catch (error) {
+      logger.error('Repository signOut error', { error, sessionId });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        error.message
+        'Failed to sign out'
       );
     }
   }
 
   async getCurrentSession(): Promise<AuthSession | null> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
+      if (error) {
+        throw this.mapSupabaseError(error);
+      }
+
       if (!session) {
         return null;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const user = await this.getUserById(session.user.id);
+      if (!user) {
+        return null;
+      }
 
-      const user: User = {
-        id: session.user.id,
-        email: session.user.email!,
-        role: profile?.role || 'customer',
-        fullName: profile?.full_name,
-        phoneNumber: profile?.phone_number,
-        createdAt: session.user.created_at,
-        updatedAt: profile?.updated_at,
-      };
-
-      return {
-        user,
-        tokens: {
-          accessToken: session.access_token,
-          refreshToken: session.refresh_token!,
-          expiresIn: session.expires_in!,
-          tokenType: session.token_type!,
-        },
-        sessionId: session.access_token,
-        expiresAt: new Date(session.expires_at!).toISOString(),
-      };
+      return this.mapToAuthSession(session, session.user, user);
     } catch (error) {
+      logger.error('Repository getCurrentSession error', { error });
       return null;
     }
   }
 
   async refreshSession(refreshToken: string): Promise<AuthTokens> {
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token: refreshToken,
-    });
+    try {
+      const { data, error } = await supabase.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
 
-    if (error || !data.session) {
-      throw new AuthError(
-        AuthErrorCode.REFRESH_TOKEN_EXPIRED,
+      if (error) {
+        throw this.mapSupabaseError(error);
+      }
+
+      if (!data.session) {
+        throw new AuthError(
+          AuthErrorCode.REFRESH_TOKEN_EXPIRED,
+          'Refresh token expired'
+        );
+      }
+
+      return {
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        expiresIn: data.session.expires_in || 3600,
+      };
+    } catch (error) {
+      logger.error('Repository refreshSession error', { error });
+      throw error instanceof AuthError ? error : new AuthError(
+        AuthErrorCode.UNKNOWN_ERROR,
         'Failed to refresh session'
       );
     }
+  }
 
-    return {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token!,
-      expiresIn: data.session.expires_in!,
-      tokenType: data.session.token_type!,
-    };
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        fullName: data.full_name,
+        phoneNumber: data.phone_number,
+        emailVerified: true, // Supabase handles this
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      logger.error('Repository getUserById error', { error, userId });
+      return null;
+    }
   }
 
   async updateUserProfile(userId: string, updates: Partial<User>): Promise<User> {
-    const profileUpdates: any = {};
-    if (updates.fullName !== undefined) profileUpdates.full_name = updates.fullName;
-    if (updates.phoneNumber !== undefined) profileUpdates.phone_number = updates.phoneNumber;
-    if (updates.role !== undefined) profileUpdates.role = updates.role;
+    try {
+      const updateData: any = {};
+      if (updates.fullName !== undefined) updateData.full_name = updates.fullName;
+      if (updates.phoneNumber !== undefined) updateData.phone_number = updates.phoneNumber;
+      if (updates.role !== undefined) updateData.role = updates.role;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(profileUpdates)
-      .eq('id', userId)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single();
 
-    if (error) {
-      throw new AuthError(
+      if (error) {
+        throw new AuthError(
+          AuthErrorCode.UPDATE_FAILED,
+          'Failed to update profile'
+        );
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        fullName: data.full_name,
+        phoneNumber: data.phone_number,
+        emailVerified: true,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch (error) {
+      logger.error('Repository updateUserProfile error', { error, userId });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
         'Failed to update profile'
       );
     }
-
-    return {
-      id: userId,
-      email: data.email,
-      role: data.role,
-      fullName: data.full_name,
-      phoneNumber: data.phone_number,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
   }
 
   async resetPassword(email: string): Promise<void> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    
-    if (error) {
-      throw new AuthError(
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'zenithapp://reset-password',
+      });
+
+      if (error) {
+        throw this.mapSupabaseError(error);
+      }
+    } catch (error) {
+      logger.error('Repository resetPassword error', { error, email });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        error.message
+        'Failed to send password reset email'
       );
     }
   }
@@ -272,15 +272,103 @@ export class SupabaseAuthRepository implements IAuthRepository {
     currentPassword: string, 
     newPassword: string
   ): Promise<void> {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
+    try {
+      // Verify current password first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id !== userId) {
+        throw new AuthError(
+          AuthErrorCode.INVALID_TOKEN,
+          'Invalid user session'
+        );
+      }
 
-    if (error) {
-      throw new AuthError(
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw this.mapSupabaseError(error);
+      }
+    } catch (error) {
+      logger.error('Repository updatePassword error', { error, userId });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        error.message
+        'Failed to update password'
       );
     }
+  }
+
+  async validateSession(session: AuthSession): Promise<boolean> {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(
+        session.tokens.accessToken
+      );
+
+      return !error && !!user && user.id === session.user.id;
+    } catch (error) {
+      logger.error('Repository validateSession error', { error });
+      return false;
+    }
+  }
+
+  // Private helper methods
+
+  private mapSupabaseError(error: any): AuthError {
+    const message = error.message || 'Authentication error';
+    
+    if (message.includes('Invalid login credentials')) {
+      return new AuthError(AuthErrorCode.INVALID_CREDENTIALS, 'Invalid email or password');
+    }
+    
+    if (message.includes('User already registered')) {
+      return new AuthError(AuthErrorCode.USER_EXISTS, 'An account with this email already exists');
+    }
+    
+    if (message.includes('Password should be at least')) {
+      return new AuthError(AuthErrorCode.WEAK_PASSWORD, 'Password must be at least 6 characters');
+    }
+    
+    if (message.includes('Invalid email')) {
+      return new AuthError(AuthErrorCode.INVALID_EMAIL, 'Please enter a valid email address');
+    }
+    
+    if (message.includes('Network request failed') || message.includes('fetch')) {
+      return new AuthError(AuthErrorCode.NETWORK_ERROR, 'Network connection error. Please check your internet connection.');
+    }
+    
+    return new AuthError(AuthErrorCode.UNKNOWN_ERROR, message);
+  }
+
+  private async mapToUser(supabaseUser: any): Promise<User> {
+    const profile = await this.getUserById(supabaseUser.id);
+    
+    return profile || {
+      id: supabaseUser.id,
+      email: supabaseUser.email!,
+      role: supabaseUser.user_metadata?.role || 'customer',
+      fullName: supabaseUser.user_metadata?.full_name || '',
+      phoneNumber: supabaseUser.user_metadata?.phone_number || '',
+      emailVerified: !!supabaseUser.email_confirmed_at,
+      createdAt: supabaseUser.created_at,
+      updatedAt: supabaseUser.updated_at || supabaseUser.created_at,
+    };
+  }
+
+  private async mapToAuthSession(
+    session: any, 
+    supabaseUser: any,
+    user?: User
+  ): Promise<AuthSession> {
+    const mappedUser = user || await this.mapToUser(supabaseUser);
+    
+    return {
+      sessionId: session.access_token,
+      user: mappedUser,
+      tokens: {
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        expiresIn: session.expires_in || 3600,
+      },
+    };
   }
 }
