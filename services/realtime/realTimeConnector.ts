@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { 
   initializeRealTimeManager,
   getRealTimeManager,
-  RealTimeManager
 } from './realTimeManager';
 
 // React hook for using the real-time manager in components

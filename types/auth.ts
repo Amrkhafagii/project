@@ -12,6 +12,21 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+export interface SecurityConfig {
+  maxLoginAttempts: number;
+  lockoutDuration: number;
+  sessionTimeout: number;
+  requireEmailVerification: boolean;
+  allowMultipleSessions: boolean;
+}
+
+export interface AuthFormData {
+  email: string;
+  password?: string;
+  confirmPassword?: string;
+  fullName?: string;
+  phoneNumber?: string;
+}
 
 // Authentication tokens
 export interface AuthTokens {
