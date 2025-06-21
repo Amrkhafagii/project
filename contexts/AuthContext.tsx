@@ -1,15 +1,23 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '@/services/supabase';
-import { User, SignUpMetadata, UpdateProfileData } from '@/types/auth';
-import { AUTH_ERRORS, ROLE_CONFIG } from '@/constants/auth';
+import { authService } from '@/services/auth/AuthService';
+import { 
+  User, 
+  SignUpData,
+  UpdateProfileData,
+  AuthSession,
+  AuthError,
+  AuthErrorCode
+} from '@/types/auth';
+import { ROLE_CONFIG } from '@/constants/auth';
+import { logger } from '@/utils/logger';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, metadata: SignUpMetadata) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, metadata: SignUpData) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -22,74 +30,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkUser();
-    
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setUser(null);
+    // Initialize auth state
+    initializeAuth();
+
+    // Subscribe to auth state changes
+    const unsubscribe = authService.onAuthStateChange((event) => {
+      logger.debug('Auth state changed', { type: event.type });
+      
+      switch (event.type) {
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+        case 'USER_UPDATED':
+          if (event.session) {
+            setUser(event.session.user);
+          }
+          break;
+        case 'SIGNED_OUT':
+        case 'SESSION_EXPIRED':
+          setUser(null);
+          router.replace('/(auth)/welcome');
+          break;
       }
-      setLoading(false);
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
-  const checkUser = async () => {
+  const initializeAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
+      const session = await authService.getCurrentSession();
+      if (session) {
+        setUser(session.user);
       }
     } catch (error) {
-      console.error('Error checking user:', error);
+      logger.error('Failed to initialize auth', { error });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      setUser({
-        id: userId,
-        email: data.email,
-        role: data.role,
-        fullName: data.full_name,
-        phoneNumber: data.phone_number,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      });
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
-
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        const errorMessage = error.message.includes('Invalid login credentials')
-          ? AUTH_ERRORS.INVALID_CREDENTIALS
-          : error.message;
-        Alert.alert('Login Failed', errorMessage);
-        throw error;
+      const session = await authService.signIn({ email, password });
+      setUser(session.user);
+      
+      // Navigate to appropriate dashboard
+      const roleConfig = ROLE_CONFIG[session.user.role];
+      if (roleConfig) {
+        router.replace(roleConfig.defaultRoute as any);
       }
     } catch (error) {
+      if (error instanceof AuthError) {
+        Alert.alert('Login Failed', error.message);
+      } else {
+        Alert.alert('Login Failed', 'An unexpected error occurred');
+      }
       throw error;
     }
   }, []);
@@ -97,114 +94,110 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (
     email: string, 
     password: string, 
-    metadata: SignUpMetadata
+    metadata: SignUpData
   ) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const session = await authService.signUp({
         email,
         password,
-        options: {
-          data: metadata,
-        },
+        ...metadata,
       });
 
-      if (error) {
-        return { error };
-      }
-
-      // Create profile
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            full_name: metadata.fullName,
-            phone_number: metadata.phoneNumber,
-            role: metadata.role,
-          });
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          return { error: profileError };
+      if (session.tokens.accessToken) {
+        setUser(session.user);
+        
+        // Navigate to appropriate dashboard
+        const roleConfig = ROLE_CONFIG[session.user.role];
+        if (roleConfig) {
+          router.replace(roleConfig.defaultRoute as any);
         }
+      } else {
+        // Email confirmation required
+        Alert.alert(
+          'Confirm Your Email',
+          'Please check your email to confirm your account before signing in.'
+        );
       }
 
       return { error: null };
     } catch (error) {
+      if (error instanceof AuthError) {
+        if (error.code === AuthErrorCode.USER_EXISTS) {
+          Alert.alert('Sign Up Failed', 'An account with this email already exists');
+        } else {
+          Alert.alert('Sign Up Failed', error.message);
+        }
+      } else {
+        Alert.alert('Sign Up Failed', 'An unexpected error occurred');
+      }
       return { error };
     }
   }, []);
 
   const signOut = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      await authService.signOut();
       setUser(null);
       router.replace('/(auth)/welcome');
     } catch (error) {
       Alert.alert('Error', 'Failed to sign out');
-      console.error('Sign out error:', error);
+      logger.error('Sign out error:', error);
     }
   }, []);
 
   const updateProfile = useCallback(async (data: UpdateProfileData) => {
-    if (!user) throw new Error('No user logged in');
-
     try {
-      const updates: any = {};
-      if (data.fullName !== undefined) updates.full_name = data.fullName;
-      if (data.phoneNumber !== undefined) updates.phone_number = data.phoneNumber;
-      if (data.role !== undefined) updates.role = data.role;
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update local user state
-      setUser(prev => prev ? {
-        ...prev,
-        ...data,
-      } : null);
+      const updatedUser = await authService.updateProfile(data);
+      setUser(updatedUser);
 
       // Navigate to appropriate dashboard if role was updated
       if (data.role && ROLE_CONFIG[data.role]) {
         router.replace(ROLE_CONFIG[data.role].defaultRoute as any);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    }
-  }, [user]);
-
-  const resetPassword = useCallback(async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'zenithapp://reset-password',
-      });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error sending reset email:', error);
+      logger.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
       throw error;
     }
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    try {
+      await authService.resetPassword(email);
+      Alert.alert(
+        'Password Reset Email Sent',
+        'Please check your email for instructions to reset your password.'
+      );
+    } catch (error) {
+      logger.error('Error sending reset email:', error);
+      Alert.alert('Error', 'Failed to send password reset email');
+      throw error;
+    }
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    updateProfile,
+    resetPassword,
+  }), [user, loading, signIn, signUp, signOut, updateProfile, resetPassword]);
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      signIn,
-      signUp,
-      signOut,
-      updateProfile,
-      resetPassword,
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
 }

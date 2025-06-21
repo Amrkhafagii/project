@@ -64,6 +64,26 @@ export class NetworkUtils {
     }
   }
 
+  static subscribeToNetworkChanges(callback: (isConnected: boolean) => void): () => void {
+    const listener = (state: NetInfoState) => {
+      callback(state.isConnected ?? false);
+    };
+
+    this.listeners.add(listener);
+    
+    // If we already have a state, call the callback immediately
+    if (this.networkState) {
+      callback(this.networkState.isConnected ?? false);
+    }
+
+    // Initialize if not already done
+    this.initialize();
+    
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
   static onNetworkChange(callback: (info: NetworkInfo) => void): () => void {
     const listener = (state: NetInfoState) => {
       callback({
