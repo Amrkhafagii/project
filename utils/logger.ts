@@ -1,10 +1,10 @@
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
   level: LogLevel;
   message: string;
   data?: any;
-  timestamp: string;
+  timestamp: Date;
 }
 
 class Logger {
@@ -15,27 +15,24 @@ class Logger {
       return;
     }
 
-    const entry: LogEntry = {
+    const logEntry: LogEntry = {
       level,
       message,
       data,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     };
 
-    switch (level) {
-      case 'info':
-        console.log(`[INFO] ${message}`, data || '');
-        break;
-      case 'warn':
-        console.warn(`[WARN] ${message}`, data || '');
-        break;
-      case 'error':
-        console.error(`[ERROR] ${message}`, data || '');
-        break;
-      case 'debug':
-        console.log(`[DEBUG] ${message}`, data || '');
-        break;
+    const consoleMethod = level === 'error' ? console.error : console.log;
+    consoleMethod(`[${level.toUpperCase()}] ${message}`, data || '');
+
+    // In production, you might want to send logs to a service
+    if (!this.isDevelopment) {
+      // TODO: Send to logging service
     }
+  }
+
+  debug(message: string, data?: any) {
+    this.log('debug', message, data);
   }
 
   info(message: string, data?: any) {
@@ -48,10 +45,6 @@ class Logger {
 
   error(message: string, data?: any) {
     this.log('error', message, data);
-  }
-
-  debug(message: string, data?: any) {
-    this.log('debug', message, data);
   }
 }
 

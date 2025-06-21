@@ -6,49 +6,38 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { Colors, Layout } from '@/constants';
 
 interface AuthLayoutProps {
-  children: React.ReactNode;
   title: string;
   subtitle?: string;
-  scrollable?: boolean;
+  children: React.ReactNode;
 }
 
-export function AuthLayout({ 
-  children, 
-  title, 
-  subtitle,
-  scrollable = false 
-}: AuthLayoutProps) {
-  const content = (
-    <View style={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-      </View>
-      {children}
-    </View>
-  );
-
+export default function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {scrollable ? (
-        <ScrollView 
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {content}
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            </View>
+            {children}
+          </View>
         </ScrollView>
-      ) : (
-        content
-      )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -57,30 +46,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  keyboardView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
+    padding: Layout.spacing.xl,
     justifyContent: 'center',
-    paddingHorizontal: Layout.spacing.lg,
-    paddingVertical: Layout.spacing.xl,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: Layout.spacing.xxl,
+    marginBottom: Layout.spacing.xl,
   },
   title: {
     fontSize: Layout.fontSize.xxl,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: Layout.spacing.sm,
     color: Colors.text,
+    marginBottom: Layout.spacing.sm,
   },
   subtitle: {
     fontSize: Layout.fontSize.md,
-    textAlign: 'center',
     color: Colors.textSecondary,
-    lineHeight: 22,
   },
 });

@@ -31,8 +31,12 @@ export default function RootLayout() {
     <ErrorBoundary>
       <AuthProvider>
         <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(customer)" options={{ headerShown: false }} />
+          <Stack.Screen name="(driver)" options={{ headerShown: false }} />
+          <Stack.Screen name="(restaurant)" options={{ headerShown: false }} />
         </Stack>
       </AuthProvider>
     </ErrorBoundary>

@@ -5,132 +5,80 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { UserRole } from '@/types/auth';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Layout } from '@/constants';
+import { UserRole } from '@/types/auth';
 import { ROLE_CONFIG } from '@/constants/auth';
 
 interface RoleSelectorProps {
-  selectedRole: UserRole;
+  selectedRole: UserRole | null;
   onRoleSelect: (role: UserRole) => void;
-  disabled?: boolean;
 }
 
-export function RoleSelector({ 
-  selectedRole, 
-  onRoleSelect, 
-  disabled = false 
-}: RoleSelectorProps) {
+export default function RoleSelector({ selectedRole, onRoleSelect }: RoleSelectorProps) {
+  const roles: UserRole[] = ['customer', 'driver', 'restaurant'];
+
   return (
     <View style={styles.container}>
-      {Object.entries(ROLE_CONFIG).map(([value, config]) => (
-        <TouchableOpacity
-          key={value}
-          style={[
-            styles.roleOption,
-            selectedRole === value && styles.roleOptionSelected,
-            disabled && styles.roleOptionDisabled,
-          ]}
-          onPress={() => onRoleSelect(value as UserRole)}
-          disabled={disabled}
-        >
-          <View style={styles.roleContent}>
-            <View style={styles.roleHeader}>
-              <Text style={styles.roleIcon}>{config.icon}</Text>
-              <Text style={[
-                styles.roleLabel,
-                selectedRole === value && styles.roleLabelSelected,
-              ]}>
-                {config.label}
-              </Text>
-            </View>
-            <Text style={[
-              styles.roleDescription,
-              selectedRole === value && styles.roleDescriptionSelected,
-            ]}>
+      {roles.map((role) => {
+        const config = ROLE_CONFIG[role];
+        const isSelected = selectedRole === role;
+
+        return (
+          <TouchableOpacity
+            key={role}
+            style={[styles.roleCard, isSelected && styles.selectedCard]}
+            onPress={() => onRoleSelect(role)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={config.icon as any}
+              size={32}
+              color={isSelected ? Colors.primary : Colors.textSecondary}
+            />
+            <Text style={[styles.roleTitle, isSelected && styles.selectedText]}>
+              {config.label}
+            </Text>
+            <Text style={styles.roleDescription}>
               {config.description}
             </Text>
-          </View>
-          <View style={[
-            styles.radioButton,
-            selectedRole === value && styles.radioButtonSelected,
-          ]}>
-            {selectedRole === value && (
-              <View style={styles.radioButtonInner} />
-            )}
-          </View>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    marginBottom: Layout.spacing.lg,
   },
-  roleOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Layout.spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Layout.borderRadius.md,
-    marginBottom: Layout.spacing.sm,
+  roleCard: {
     backgroundColor: Colors.surface,
+    borderRadius: Layout.borderRadius.md,
+    padding: Layout.spacing.lg,
+    marginBottom: Layout.spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
   },
-  roleOptionSelected: {
+  selectedCard: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryLight,
   },
-  roleOptionDisabled: {
-    opacity: 0.6,
-  },
-  roleContent: {
-    flex: 1,
-  },
-  roleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Layout.spacing.xs,
-  },
-  roleIcon: {
-    fontSize: 24,
-    marginRight: Layout.spacing.sm,
-  },
-  roleLabel: {
-    fontSize: Layout.fontSize.md,
+  roleTitle: {
+    fontSize: Layout.fontSize.lg,
     fontWeight: '600',
     color: Colors.text,
+    marginTop: Layout.spacing.sm,
+    marginBottom: Layout.spacing.xs,
   },
-  roleLabelSelected: {
+  selectedText: {
     color: Colors.primary,
   },
   roleDescription: {
     fontSize: Layout.fontSize.sm,
     color: Colors.textSecondary,
-    marginLeft: 36,
-  },
-  roleDescriptionSelected: {
-    color: Colors.primary,
-  },
-  radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Layout.spacing.md,
-  },
-  radioButtonSelected: {
-    borderColor: Colors.primary,
-  },
-  radioButtonInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.primary,
+    textAlign: 'center',
   },
 });

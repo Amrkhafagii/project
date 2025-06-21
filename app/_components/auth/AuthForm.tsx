@@ -18,7 +18,7 @@ interface AuthFormProps {
   onForgotPassword?: () => void;
 }
 
-export function AuthForm({
+export default function AuthForm({
   formData,
   onFormChange,
   onSubmit,
