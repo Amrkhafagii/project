@@ -1,60 +1,66 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
 import { Colors, Layout } from '@/constants';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'small' | 'medium' | 'large';
-  loading?: boolean;
   disabled?: boolean;
+  loading?: boolean;
+  variant?: 'primary' | 'outline' | 'link';
+  size?: 'small' | 'medium' | 'large';
+  fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  fullWidth?: boolean;
 }
 
 export function Button({
   title,
   onPress,
+  disabled = false,
+  loading = false,
   variant = 'primary',
   size = 'medium',
-  loading = false,
-  disabled = false,
+  fullWidth = false,
   style,
   textStyle,
-  fullWidth = false,
 }: ButtonProps) {
-  const buttonStyle = [
-    styles.base,
-    styles[variant],
-    styles[size],
-    fullWidth && styles.fullWidth,
-    (disabled || loading) && styles.disabled,
-    style,
-  ];
-
-  const textStyles = [
-    styles.text,
-    styles[`${variant}Text`],
-    styles[`${size}Text`],
-    textStyle,
-  ];
+  const isDisabled = disabled || loading;
 
   return (
     <TouchableOpacity
-      style={buttonStyle}
+      style={[
+        styles.base,
+        styles[variant],
+        styles[size],
+        fullWidth && styles.fullWidth,
+        isDisabled && styles.disabled,
+        style,
+      ]}
       onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
+      disabled={isDisabled}
     >
       {loading ? (
         <ActivityIndicator 
-          size="small" 
           color={variant === 'primary' ? Colors.white : Colors.primary} 
+          size="small" 
         />
       ) : (
-        <Text style={textStyles}>{title}</Text>
+        <Text style={[
+          styles.text,
+          styles[`${variant}Text`],
+          styles[`${size}Text`],
+          textStyle,
+        ]}>
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -62,35 +68,21 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Layout.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
+    borderRadius: Layout.borderRadius.md,
   },
-  fullWidth: {
-    width: '100%',
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  
-  // Variants
   primary: {
     backgroundColor: Colors.primary,
-  },
-  secondary: {
-    backgroundColor: Colors.gray[100],
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: Colors.primary,
   },
-  ghost: {
+  link: {
     backgroundColor: 'transparent',
   },
-  
-  // Sizes
   small: {
     paddingHorizontal: Layout.spacing.md,
     paddingVertical: Layout.spacing.sm,
@@ -103,28 +95,27 @@ const styles = StyleSheet.create({
   },
   large: {
     paddingHorizontal: Layout.spacing.xl,
-    paddingVertical: Layout.spacing.lg,
-    minHeight: 52,
+    paddingVertical: Layout.spacing.md,
+    minHeight: 50,
   },
-  
-  // Text styles
+  fullWidth: {
+    width: '100%',
+  },
+  disabled: {
+    opacity: 0.6,
+  },
   text: {
     fontWeight: '600',
   },
   primaryText: {
     color: Colors.white,
   },
-  secondaryText: {
-    color: Colors.text,
-  },
   outlineText: {
     color: Colors.primary,
   },
-  ghostText: {
+  linkText: {
     color: Colors.primary,
   },
-  
-  // Text sizes
   smallText: {
     fontSize: Layout.fontSize.sm,
   },
@@ -132,8 +123,6 @@ const styles = StyleSheet.create({
     fontSize: Layout.fontSize.md,
   },
   largeText: {
-    fontSize: Layout.fontSize.lg,
+    fontSize: Layout.fontSize.md,
   },
 });
-
-export default Button;

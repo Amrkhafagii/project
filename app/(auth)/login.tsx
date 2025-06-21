@@ -1,196 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Colors, Layout } from '@/constants';
-import { validateEmail, validateRequired } from '@/utils/validation';
 import { Button } from '@/app/_components/common/Button';
+import { AuthForm } from '@/app/_components/auth/AuthForm';
+import { AuthLayout } from '@/app/_components/auth/AuthLayout';
+import { validateAuthForm } from '@/utils/auth/validation';
+import { AuthFormData } from '@/types/auth';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState<AuthFormData>({
+    email: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
 
-  const handleLogin = async () => {
-    // Validation
-    if (loading) {
-      return; // Prevent multiple submissions
-    }
-    
-    const emailValidation = validateRequired(email, 'Email');
-    if (!emailValidation.isValid) {
-      Alert.alert('Error', emailValidation.message);
-      return;
-    }
+  const handleLogin = useCallback(async () => {
+    if (loading) return;
 
-    if (!validateEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    const passwordValidation = validateRequired(password, 'Password');
-    if (!passwordValidation.isValid) {
-      Alert.alert('Error', passwordValidation.message);
+    const validation = validateAuthForm(formData, 'login');
+    if (!validation.isValid) {
+      Alert.alert('Error', validation.message);
       return;
     }
 
     setLoading(true);
     try {
-      await signIn(email, password);
-      // Clear inputs for security
-      setEmail('');
-      setPassword('');
-      // Navigation will be handled by the index.tsx based on user role
+      await signIn(formData.email, formData.password);
+      // Clear sensitive data
+      setFormData({ email: '', password: '' });
     } catch (error) {
-      // Error will be handled by the auth provider, no need to show another alert here
-      console.log('Login error caught in component:', 
-        error instanceof Error ? error.message : 'Unknown error');
+      console.log('Login error:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, loading, signIn]);
+
+  const handleForgotPassword = useCallback(() => {
+    router.push('/(auth)/forgot-password');
+  }, []);
+
+  const handleSignUp = useCallback(() => {
+    router.push('/(auth)/register');
+  }, []);
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <AuthLayout
+      title="Welcome Back"
+      subtitle="Sign in to your Zenith account"
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to your Zenith account</Text>
+      <AuthForm
+        formData={formData}
+        onFormChange={setFormData}
+        onSubmit={handleLogin}
+        loading={loading}
+        mode="login"
+        onForgotPassword={handleForgotPassword}
+      />
 
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!loading}
-            />
-
-            <TouchableOpacity 
-              style={styles.forgotPassword}
-              onPress={() => router.push('/(auth)/forgot-password')}
-              disabled={loading}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <Button
-              title={loading ? 'Signing In...' : 'Sign In'}
-              onPress={handleLogin}
-              disabled={loading || !email || !password}
-              loading={loading}
-              fullWidth
-              size="large"
-              style={styles.loginButton}
-            />
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity 
-              disabled={loading}
-              onPress={() => router.push('/(auth)/register')}
-            >
-              <Text style={styles.linkText}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Don't have an account? </Text>
+        <Button
+          title="Sign Up"
+          onPress={handleSignUp}
+          variant="link"
+          disabled={loading}
+        />
+      </View>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Layout.spacing.lg,
-  },
-  title: {
-    fontSize: Layout.fontSize.xxl,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: Layout.spacing.sm,
-    color: Colors.text,
-  },
-  subtitle: {
-    fontSize: Layout.fontSize.md,
-    textAlign: 'center',
-    marginBottom: Layout.spacing.xxl,
-    color: Colors.textSecondary,
-  },
-  form: {
-    marginBottom: Layout.spacing.xl,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    padding: 4,
-    marginBottom: Layout.spacing.md,
-  },
-  forgotPasswordText: {
-    fontSize: Layout.fontSize.sm,
-    color: Colors.primary,
-  },
-  loginButton: {
-    marginTop: Layout.spacing.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Layout.borderRadius.md,
-    padding: Layout.spacing.md,
-    fontSize: Layout.fontSize.md,
-    marginBottom: Layout.spacing.md,
-    backgroundColor: Colors.surface,
-    color: Colors.text,
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: Layout.spacing.lg,
   },
   footerText: {
     fontSize: Layout.fontSize.md,
     color: Colors.textSecondary,
-  },
-  linkText: {
-    fontSize: Layout.fontSize.md,
-    color: Colors.primary,
-    fontWeight: '600',
   },
 });
