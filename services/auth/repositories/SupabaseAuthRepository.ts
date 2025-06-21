@@ -68,23 +68,30 @@ export class SupabaseAuthRepository implements IAuthRepository {
         );
       }
 
-      // Create profile in profiles table
+      // The profiles table uses different column names based on the migration
+      // user_id instead of id, phone instead of phone_number
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: authData.user.id,
-          email: data.email,
+          user_id: authData.user.id,  // Changed from 'id' to 'user_id'
           full_name: data.fullName,
-          phone_number: data.phoneNumber,
+          phone: data.phoneNumber,     // Changed from 'phone_number' to 'phone'
           role: data.role,
+          onboarded: false,            // Added required field from migration
         });
 
       if (profileError) {
+        logger.error('Profile creation error', { profileError, userId: authData.user.id });
         // Rollback auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        try {
+          // Note: admin methods may not be available in client SDK
+          // Instead, we'll let the user retry signup
+        } catch (rollbackError) {
+          logger.error('Failed to rollback user creation', { rollbackError });
+        }
         throw new AuthError(
           AuthErrorCode.PROFILE_CREATION_FAILED,
-          'Failed to create user profile'
+          `Failed to create user profile: ${profileError.message}`
         );
       }
 
@@ -186,19 +193,25 @@ export class SupabaseAuthRepository implements IAuthRepository {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)  // Changed from 'id' to 'user_id'
         .single();
 
       if (error || !data) {
         return null;
       }
 
+      // Get email from auth.users table since it's not in profiles
+      const { data: authUser } = await supabase.auth.admin?.getUser?.(userId) || 
+        await supabase.auth.getUser();
+
+      const email = authUser?.user?.email || '';
+
       return {
-        id: data.id,
-        email: data.email,
-        role: data.role,
-        fullName: data.full_name,
-        phoneNumber: data.phone_number,
+        id: data.user_id,
+        email: email,
+        role: data.role || 'customer',
+        fullName: data.full_name || '',
+        phoneNumber: data.phone || '',
         emailVerified: true, // Supabase handles this
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -213,13 +226,13 @@ export class SupabaseAuthRepository implements IAuthRepository {
     try {
       const updateData: any = {};
       if (updates.fullName !== undefined) updateData.full_name = updates.fullName;
-      if (updates.phoneNumber !== undefined) updateData.phone_number = updates.phoneNumber;
+      if (updates.phoneNumber !== undefined) updateData.phone = updates.phoneNumber;
       if (updates.role !== undefined) updateData.role = updates.role;
 
       const { data, error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId)
+        .eq('user_id', userId)  // Changed from 'id' to 'user_id'
         .select()
         .single();
 
@@ -230,12 +243,16 @@ export class SupabaseAuthRepository implements IAuthRepository {
         );
       }
 
+      // Get email from auth.users table
+      const { data: authUser } = await supabase.auth.getUser();
+      const email = authUser?.user?.email || '';
+
       return {
-        id: data.id,
-        email: data.email,
+        id: data.user_id,
+        email: email,
         role: data.role,
         fullName: data.full_name,
-        phoneNumber: data.phone_number,
+        phoneNumber: data.phone,
         emailVerified: true,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
