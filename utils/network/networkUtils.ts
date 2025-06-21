@@ -13,7 +13,7 @@ export interface NetworkInfo {
  */
 export class NetworkUtils {
   private static networkState: NetInfoState | null = null;
-  private static listeners: Set<(state: NetInfoState) => void> = new Set();
+  private static listeners: Set<(isConnected: boolean) => void> = new Set();
   private static unsubscribe: (() => void) | null = null;
 
   static initialize(): void {
@@ -25,7 +25,7 @@ export class NetworkUtils {
       this.networkState = state;
       this.listeners.forEach(listener => {
         try {
-          listener(state);
+          listener(state.isConnected ?? false);
         } catch (error) {
           logger.error('Network listener error', { error });
         }
@@ -35,6 +35,8 @@ export class NetworkUtils {
     // Get initial state
     NetInfo.fetch().then(state => {
       this.networkState = state;
+    }).catch(error => {
+      logger.error('Failed to fetch initial network state', { error });
     });
   }
 
@@ -65,22 +67,20 @@ export class NetworkUtils {
   }
 
   static subscribeToNetworkChanges(callback: (isConnected: boolean) => void): () => void {
-    const listener = (state: NetInfoState) => {
-      callback(state.isConnected ?? false);
-    };
-
-    this.listeners.add(listener);
+    // Initialize if not already done
+    this.initialize();
+    
+    // Add the listener
+    this.listeners.add(callback);
     
     // If we already have a state, call the callback immediately
     if (this.networkState) {
       callback(this.networkState.isConnected ?? false);
     }
-
-    // Initialize if not already done
-    this.initialize();
     
+    // Return unsubscribe function
     return () => {
-      this.listeners.delete(listener);
+      this.listeners.delete(callback);
     };
   }
 
@@ -94,10 +94,15 @@ export class NetworkUtils {
       });
     };
 
-    this.listeners.add(listener);
+    // Initialize if not already done
+    this.initialize();
+
+    this.unsubscribe = NetInfo.addEventListener(listener);
     
     return () => {
-      this.listeners.delete(listener);
+      if (this.unsubscribe) {
+        this.unsubscribe();
+      }
     };
   }
 
