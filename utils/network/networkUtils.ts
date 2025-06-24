@@ -7,11 +7,20 @@ export interface NetworkInfo {
   type: string;
   details?: any;
 }
+export const checkNetworkConnectivity = async () => {
+  const state = await NetInfo.fetch();
+  return {
+    isConnected: state.isConnected,
+    isInternetReachable: state.isInternetReachable,
+    type: state.type
+  };
+};
 
 /**
  * Network utility functions
  */
 export class NetworkUtils {
+
   private static networkState: NetInfoState | null = null;
   private static listeners: Set<(isConnected: boolean) => void> = new Set();
   private static unsubscribe: (() => void) | null = null;
