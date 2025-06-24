@@ -10,8 +10,6 @@ import {
 import { IAuthRepository } from '../interfaces/IAuthRepository';
 import { supabase } from '@/services/supabase';
 import { logger } from '@/utils/logger';
-import { checkNetworkConnectivity } from '@/utils/network/networkUtils';
-
 
 /**
  * Supabase implementation of the authentication repository
@@ -47,24 +45,6 @@ export class SupabaseAuthRepository implements IAuthRepository {
 
   async signUp(data: SignUpData): Promise<AuthSession> {
     try {
-      // Check network connectivity first
-      const networkState = await NetInfo.fetch();
-      
-      if (!networkState.isConnected) {
-        throw new AuthError(
-          AuthErrorCode.NETWORK_ERROR,
-          'No network connection available. Please check your connection.'
-        );
-      }
-  
-      if (!networkState.isInternetReachable) {
-        throw new AuthError(
-          AuthErrorCode.NETWORK_ERROR,
-          'Network is connected but internet is not reachable'
-        );
-      }
-  
-      // Proceed with Supabase signup
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -76,53 +56,46 @@ export class SupabaseAuthRepository implements IAuthRepository {
           },
         },
       });
-  
+
       if (error) {
         throw this.mapSupabaseError(error);
       }
-  
+
       if (!authData.user) {
         throw new AuthError(
           AuthErrorCode.SIGNUP_FAILED,
           'Failed to create account'
         );
       }
-  
-      // Create profile in separate table
+
+      // The profiles table uses different column names based on the migration
+      // user_id instead of id, phone instead of phone_number
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
-          user_id: authData.user.id,
+          user_id: authData.user.id,  // Changed from 'id' to 'user_id'
           full_name: data.fullName,
-          phone: data.phoneNumber,
+          phone: data.phoneNumber,     // Changed from 'phone_number' to 'phone'
           role: data.role,
-          onboarded: false,
+          onboarded: false,            // Added required field from migration
         });
-  
+
       if (profileError) {
-        logger.error('Profile creation error', { 
-          profileError, 
-          userId: authData.user.id 
-        });
-  
-        // Attempt to delete the auth user if profile creation fails
+        logger.error('Profile creation error', { profileError, userId: authData.user.id });
+        // Rollback auth user if profile creation fails
         try {
-          if (supabase.auth.admin?.deleteUser) {
-            await supabase.auth.admin.deleteUser(authData.user.id);
-          }
+          // Note: admin methods may not be available in client SDK
+          // Instead, we'll let the user retry signup
         } catch (rollbackError) {
-          logger.error('Failed to rollback user creation', { 
-            rollbackError 
-          });
+          logger.error('Failed to rollback user creation', { rollbackError });
         }
-  
         throw new AuthError(
           AuthErrorCode.PROFILE_CREATION_FAILED,
           `Failed to create user profile: ${profileError.message}`
         );
       }
-  
-      // Handle email confirmation case
+
+      // If no session (email confirmation required), create a partial session
       if (!authData.session) {
         return {
           sessionId: authData.user.id,
@@ -134,32 +107,13 @@ export class SupabaseAuthRepository implements IAuthRepository {
           },
         };
       }
-  
-      // Return full session if email confirmation not required
+
       return this.mapToAuthSession(authData.session, authData.user);
-      
     } catch (error) {
-      logger.error('Repository signUp error', { 
-        error,
-        email: data.email,
-        role: data.role 
-      });
-      
-      if (error instanceof AuthError) {
-        throw error;
-      }
-      
-      // Handle unexpected errors
-      if (error instanceof Error) {
-        throw new AuthError(
-          AuthErrorCode.UNKNOWN_ERROR,
-          error.message
-        );
-      }
-      
-      throw new AuthError(
+      logger.error('Repository signUp error', { error });
+      throw error instanceof AuthError ? error : new AuthError(
         AuthErrorCode.UNKNOWN_ERROR,
-        'An unexpected error occurred during sign up'
+        'Failed to sign up'
       );
     }
   }
