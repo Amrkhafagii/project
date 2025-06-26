@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,29 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Activity, Target, Flame, Zap, TrendingUp, Award } from 'lucide-react-native';
+import { Activity, Target, Flame, Zap, TrendingUp, Award, Calendar } from 'lucide-react-native';
+import HydrationTracker from '../../../components/fitness/HydrationTracker';
+import EnergyBalanceCard from '../../../components/fitness/EnergyBalanceCard';
+import CorrelationChart from '../../../components/fitness/CorrelationChart';
+import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '../../../services/supabase';
 
 const { width } = Dimensions.get('window');
 
 export default function FitnessScreen() {
+  const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const [refreshing, setRefreshing] = useState(false);
+  const [todayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [fitnessProfile, setFitnessProfile] = useState<any>(null);
+  const [todayStats, setTodayStats] = useState({
+    caloriesConsumed: 0,
+    proteinConsumed: 0,
+    workoutsCompleted: 0,
+  });
 
   const periods = [
     { id: 'week', label: 'Week' },
@@ -21,77 +36,122 @@ export default function FitnessScreen() {
     { id: 'year', label: 'Year' },
   ];
 
-  const fitnessStats = {
-    caloriesConsumed: 1850,
-    caloriesGoal: 2200,
-    proteinConsumed: 120,
-    proteinGoal: 150,
-    workoutsThisWeek: 4,
-    workoutGoal: 5,
+  useEffect(() => {
+    loadFitnessData();
+  }, [user]);
+
+  const loadFitnessData = async () => {
+    if (!user) return;
+
+    try {
+      // Load fitness profile
+      const { data: profile } = await supabase
+        .from('fitness_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      setFitnessProfile(profile);
+
+      // Load today's stats
+      const { data: nutritionLogs } = await supabase
+        .from('nutrition_logs')
+        .select('calories, protein_g')
+        .eq('user_id', user.id)
+        .eq('date', todayDate);
+
+      const { data: workouts } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', todayDate);
+
+      const totalCalories = nutritionLogs?.reduce((sum, log) => sum + log.calories, 0) || 0;
+      const totalProtein = nutritionLogs?.reduce((sum, log) => sum + Number(log.protein_g), 0) || 0;
+
+      setTodayStats({
+        caloriesConsumed: totalCalories,
+        proteinConsumed: totalProtein,
+        workoutsCompleted: workouts?.length || 0,
+      });
+    } catch (error) {
+      console.error('Error loading fitness data:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadFitnessData();
+    setRefreshing(false);
   };
 
   const achievements = [
     {
       id: '1',
-      title: 'Protein Master',
-      description: 'Hit protein goal 7 days in a row',
+      title: 'Recovery Master',
+      description: 'Hit protein + hydration goals with workout streak',
       icon: Award,
-      earned: true,
+      earned: todayStats.proteinConsumed >= (fitnessProfile?.daily_protein_goal || 50),
     },
     {
       id: '2',
-      title: 'Consistency King',
-      description: 'Ordered healthy meals 10 days straight',
+      title: 'Metabolic Sync',
+      description: 'Maintain perfect calorie balance for 7 days',
       icon: Target,
-      earned: true,
+      earned: false,
     },
     {
       id: '3',
-      title: 'Calorie Counter',
-      description: 'Stay within calorie range for 30 days',
+      title: 'Hydration Hero',
+      description: 'Meet hydration goals for 30 days straight',
       icon: Flame,
       earned: false,
     },
   ];
 
-  const weeklyProgress = [
-    { day: 'Mon', calories: 1950, target: 2200 },
-    { day: 'Tue', calories: 2100, target: 2200 },
-    { day: 'Wed', calories: 1800, target: 2200 },
-    { day: 'Thu', calories: 2050, target: 2200 },
-    { day: 'Fri', calories: 1900, target: 2200 },
-    { day: 'Sat', calories: 2200, target: 2200 },
-    { day: 'Sun', calories: 1850, target: 2200 },
-  ];
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Fitness Tracker</Text>
-        <View style={styles.periodSelector}>
-          {periods.map((period) => (
-            <TouchableOpacity
-              key={period.id}
-              style={[
-                styles.periodButton,
-                selectedPeriod === period.id && styles.activePeriodButton,
-              ]}
-              onPress={() => setSelectedPeriod(period.id)}
-            >
-              <Text
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Fitness Dashboard</Text>
+          <View style={styles.periodSelector}>
+            {periods.map((period) => (
+              <TouchableOpacity
+                key={period.id}
                 style={[
-                  styles.periodText,
-                  selectedPeriod === period.id && styles.activePeriodText,
+                  styles.periodButton,
+                  selectedPeriod === period.id && styles.activePeriodButton,
                 ]}
+                onPress={() => setSelectedPeriod(period.id)}
               >
-                {period.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.periodText,
+                    selectedPeriod === period.id && styles.activePeriodText,
+                  ]}
+                >
+                  {period.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Energy Balance Card */}
+        <View style={styles.section}>
+          <EnergyBalanceCard date={todayDate} />
+        </View>
+
+        {/* Hydration Tracker */}
+        <View style={styles.section}>
+          <HydrationTracker date={todayDate} onUpdate={loadFitnessData} />
+        </View>
+
         {/* Daily Stats */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Progress</Text>
@@ -100,7 +160,7 @@ export default function FitnessScreen() {
               <View style={styles.statHeader}>
                 <Flame size={24} color="#EF4444" />
                 <Text style={styles.statValue}>
-                  {fitnessStats.caloriesConsumed}/{fitnessStats.caloriesGoal}
+                  {todayStats.caloriesConsumed}/{fitnessProfile?.daily_calorie_goal || 2000}
                 </Text>
               </View>
               <Text style={styles.statLabel}>Calories</Text>
@@ -110,7 +170,7 @@ export default function FitnessScreen() {
                     styles.progressFill,
                     {
                       width: `${Math.min(
-                        (fitnessStats.caloriesConsumed / fitnessStats.caloriesGoal) * 100,
+                        (todayStats.caloriesConsumed / (fitnessProfile?.daily_calorie_goal || 2000)) * 100,
                         100
                       )}%`,
                       backgroundColor: '#EF4444',
@@ -124,7 +184,7 @@ export default function FitnessScreen() {
               <View style={styles.statHeader}>
                 <Zap size={24} color="#F59E0B" />
                 <Text style={styles.statValue}>
-                  {fitnessStats.proteinConsumed}g/{fitnessStats.proteinGoal}g
+                  {todayStats.proteinConsumed}g/{fitnessProfile?.daily_protein_goal || 50}g
                 </Text>
               </View>
               <Text style={styles.statLabel}>Protein</Text>
@@ -134,7 +194,7 @@ export default function FitnessScreen() {
                     styles.progressFill,
                     {
                       width: `${Math.min(
-                        (fitnessStats.proteinConsumed / fitnessStats.proteinGoal) * 100,
+                        (todayStats.proteinConsumed / (fitnessProfile?.daily_protein_goal || 50)) * 100,
                         100
                       )}%`,
                       backgroundColor: '#F59E0B',
@@ -148,7 +208,7 @@ export default function FitnessScreen() {
               <View style={styles.statHeader}>
                 <Activity size={24} color="#10B981" />
                 <Text style={styles.statValue}>
-                  {fitnessStats.workoutsThisWeek}/{fitnessStats.workoutGoal}
+                  {todayStats.workoutsCompleted} completed
                 </Text>
               </View>
               <Text style={styles.statLabel}>Workouts</Text>
@@ -157,10 +217,7 @@ export default function FitnessScreen() {
                   style={[
                     styles.progressFill,
                     {
-                      width: `${Math.min(
-                        (fitnessStats.workoutsThisWeek / fitnessStats.workoutGoal) * 100,
-                        100
-                      )}%`,
+                      width: todayStats.workoutsCompleted > 0 ? '100%' : '0%',
                       backgroundColor: '#10B981',
                     },
                   ]}
@@ -170,37 +227,14 @@ export default function FitnessScreen() {
           </View>
         </View>
 
-        {/* Weekly Chart */}
+        {/* Correlation Chart */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weekly Calorie Intake</Text>
-          <View style={styles.chartContainer}>
-            <View style={styles.chart}>
-              {weeklyProgress.map((day, index) => {
-                const percentage = (day.calories / day.target) * 100;
-                return (
-                  <View key={index} style={styles.chartBar}>
-                    <View style={styles.barContainer}>
-                      <View
-                        style={[
-                          styles.bar,
-                          {
-                            height: `${Math.min(percentage, 100)}%`,
-                            backgroundColor: percentage >= 100 ? '#10B981' : '#6B7280',
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.barLabel}>{day.day}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
+          <CorrelationChart days={selectedPeriod === 'week' ? 7 : selectedPeriod === 'month' ? 30 : 365} />
         </View>
 
-        {/* Achievements */}
+        {/* Enhanced Achievements */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Achievements</Text>
+          <Text style={styles.sectionTitle}>Cross-Domain Achievements</Text>
           {achievements.map((achievement) => {
             const IconComponent = achievement.icon;
             return (
@@ -261,6 +295,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  scrollContent: {
+    paddingBottom: 20,
+  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -300,12 +337,9 @@ const styles = StyleSheet.create({
   activePeriodText: {
     color: '#111827',
   },
-  scrollContent: {
-    paddingBottom: 20,
-  },
   section: {
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 20,
@@ -353,44 +387,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  chartContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  chart: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 120,
-  },
-  chartBar: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  barContainer: {
-    height: 80,
-    width: 20,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    justifyContent: 'flex-end',
-    marginBottom: 8,
-  },
-  bar: {
-    width: '100%',
-    borderRadius: 10,
-    minHeight: 4,
-  },
-  barLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
   achievementCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -416,7 +412,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   earnedIcon: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#8B5CF6',
   },
   lockedIcon: {
     backgroundColor: '#F3F4F6',
@@ -441,7 +437,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#10B981',
+    backgroundColor: '#8B5CF6',
     justifyContent: 'center',
     alignItems: 'center',
   },
