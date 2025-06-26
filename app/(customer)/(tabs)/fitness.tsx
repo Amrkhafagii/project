@@ -64,7 +64,7 @@ export default function FitnessScreen() {
         .from('workout_sessions')
         .select('id')
         .eq('user_id', user.id)
-        .eq('date', todayDate);
+        .eq('workout_date', todayDate);
 
       const totalCalories = nutritionLogs?.reduce((sum, log) => sum + log.calories, 0) || 0;
       const totalProtein = nutritionLogs?.reduce((sum, log) => sum + Number(log.protein_g), 0) || 0;

@@ -40,7 +40,7 @@ export default function CorrelationChart({ days = 7 }: CorrelationChartProps) {
 
       const proteinData = dates.map(date => nutritionByDate[date]?.protein_g || 0);
       const workoutData = dates.map(date => {
-        const workout = workouts?.find(w => w.date === date);
+        const workout = workouts?.find(w => w.workout_date === date);
         return workout ? workout.calories_burned / 10 : 0; // Scale down for visualization
       });
 

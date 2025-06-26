@@ -4,7 +4,7 @@ import { calculateBMR, calculateTDEE, calculateCalorieGoal, calculateMacros } fr
 export interface WorkoutSession {
   id?: string;
   user_id: string;
-  date: string;
+  workout_date: string;
   workout_type: 'strength' | 'cardio' | 'flexibility' | 'sports' | 'mixed';
   duration_minutes: number;
   calories_burned: number;
@@ -66,7 +66,7 @@ export async function calculateEnergyBalance(userId: string, date: string): Prom
       .from('workout_sessions')
       .select('calories_burned')
       .eq('user_id', userId)
-      .eq('date', date);
+      .eq('workout_date', date);
 
     const workoutBurn = workouts?.reduce((sum, workout) => sum + workout.calories_burned, 0) || 0;
 
@@ -95,7 +95,7 @@ export async function getHydrationGoal(userId: string, date: string): Promise<nu
       .from('workout_sessions')
       .select('duration_minutes, workout_type')
       .eq('user_id', userId)
-      .eq('date', date);
+      .eq('workout_date', date);
 
     if (!workouts || workouts.length === 0) return baseGoal;
 
@@ -191,9 +191,9 @@ export async function getCorrelationData(userId: string, days: number = 7) {
       .from('workout_sessions')
       .select('*')
       .eq('user_id', userId)
-      .gte('date', startDate.toISOString().split('T')[0])
-      .lte('date', endDate.toISOString().split('T')[0])
-      .order('date', { ascending: true });
+      .gte('workout_date', startDate.toISOString().split('T')[0])
+      .lte('workout_date', endDate.toISOString().split('T')[0])
+      .order('workout_date', { ascending: true });
 
     // Get nutrition logs
     const { data: nutrition } = await supabase
