@@ -27,22 +27,102 @@ BEGIN
   END IF;
 END $$;
 
--- Create workout_sessions table
-CREATE TABLE IF NOT EXISTS workout_sessions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  workout_date date NOT NULL,
-  workout_type workout_type NOT NULL,
-  duration_minutes integer NOT NULL DEFAULT 0,
-  calories_burned integer NOT NULL DEFAULT 0,
-  exercises jsonb DEFAULT '[]'::jsonb,
-  notes text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+-- Check if table exists and handle accordingly
+DO $$
+BEGIN
+  -- Check if workout_sessions table exists
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'workout_sessions') THEN
+    -- Create new table
+    CREATE TABLE workout_sessions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+      workout_date date NOT NULL,
+      workout_type workout_type NOT NULL,
+      duration_minutes integer NOT NULL DEFAULT 0,
+      calories_burned integer NOT NULL DEFAULT 0,
+      exercises jsonb DEFAULT '[]'::jsonb,
+      notes text,
+      created_at timestamptz DEFAULT now(),
+      updated_at timestamptz DEFAULT now()
+    );
+  ELSE
+    -- Table exists, check if it has 'date' column and rename it
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'date'
+    ) THEN
+      ALTER TABLE workout_sessions RENAME COLUMN date TO workout_date;
+    END IF;
+    
+    -- Add any missing columns
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'workout_date'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN workout_date date NOT NULL;
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'workout_type'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN workout_type workout_type NOT NULL;
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'duration_minutes'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN duration_minutes integer NOT NULL DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'calories_burned'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN calories_burned integer NOT NULL DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'exercises'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN exercises jsonb DEFAULT '[]'::jsonb;
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'notes'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN notes text;
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'created_at'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN created_at timestamptz DEFAULT now();
+    END IF;
+    
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'workout_sessions' AND column_name = 'updated_at'
+    ) THEN
+      ALTER TABLE workout_sessions ADD COLUMN updated_at timestamptz DEFAULT now();
+    END IF;
+  END IF;
+END $$;
 
--- Create index for faster queries
-CREATE INDEX IF NOT EXISTS idx_workout_sessions_user_date ON workout_sessions(user_id, workout_date DESC);
+-- Create index for faster queries (check if exists first)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes 
+    WHERE indexname = 'idx_workout_sessions_user_date'
+  ) THEN
+    CREATE INDEX idx_workout_sessions_user_date ON workout_sessions(user_id, workout_date DESC);
+  END IF;
+END $$;
 
 -- Enable RLS
 ALTER TABLE workout_sessions ENABLE ROW LEVEL SECURITY;
