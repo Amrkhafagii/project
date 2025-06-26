@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Activity, Target, Brain, BarChart3, Award } from 'lucide-react-native';
+import { Activity, Target, Brain, BarChart3, Award, Dumbbell } from 'lucide-react-native';
 import BodyMetricsTracker from './BodyMetricsTracker';
 import FlexibleGoalsManager from './FlexibleGoalsManager';
 import AdvancedAnalytics from './AdvancedAnalytics';
+import WorkoutScreen from './WorkoutTracker/WorkoutScreen';
 
-type TabType = 'metrics' | 'goals' | 'analytics' | 'achievements';
+type TabType = 'workouts' | 'metrics' | 'goals' | 'analytics' | 'achievements';
 
 export default function FitnessScreen() {
-  const [activeTab, setActiveTab] = useState<TabType>('metrics');
+  const [activeTab, setActiveTab] = useState<TabType>('workouts');
 
   const tabs = [
-    { id: 'metrics' as TabType, label: 'Body Metrics', icon: Activity },
+    { id: 'workouts' as TabType, label: 'Workouts', icon: Dumbbell },
+    { id: 'metrics' as TabType, label: 'Metrics', icon: Activity },
     { id: 'goals' as TabType, label: 'Goals', icon: Target },
     { id: 'analytics' as TabType, label: 'Analytics', icon: Brain },
-    { id: 'achievements' as TabType, label: 'Achievements', icon: Award },
+    { id: 'achievements' as TabType, label: 'Awards', icon: Award },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'workouts':
+        return <WorkoutScreen />;
       case 'metrics':
         return <BodyMetricsTracker />;
       case 'goals':
@@ -42,7 +46,7 @@ export default function FitnessScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView horizontal style={styles.tabBar}>
+      <ScrollView horizontal style={styles.tabBar} showsHorizontalScrollIndicator={false}>
         <View style={styles.tabBarContent}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -84,6 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    maxHeight: 56,
   },
   tabBarContent: {
     flexDirection: 'row',
