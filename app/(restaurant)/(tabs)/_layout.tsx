@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { AuthGuard } from '@/features/shared/components/AuthGuard';
 import { TabBarIcon } from '@/app/_components/navigation/TabBarIcon';
 import { Colors } from '@/constants';
-import { Chrome as Home, ClipboardList, ChartBar as BarChart3, Settings, User } from 'lucide-react-native';
+import { Home, ClipboardList, BarChart3, ChefHat, User } from 'lucide-react-native';
 
 export default function RestaurantTabLayout() {
   return (
@@ -59,7 +59,7 @@ export default function RestaurantTabLayout() {
           options={{
             title: 'Menu',
             tabBarIcon: ({ color, focused }) => (
-              <TabBarIcon Icon={Settings} color={color} focused={focused} />
+              <TabBarIcon Icon={ChefHat} color={color} focused={focused} />
             ),
           }}
         />

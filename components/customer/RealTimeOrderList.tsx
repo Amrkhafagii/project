@@ -8,7 +8,7 @@ import {
   RefreshControl,
   Alert 
 } from 'react-native';
-import { Package, ChevronRight, Clock, MapPin, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Package, ChevronRight, Clock, MapPin, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { getRealTimeManager } from '@/services/realtime/realTimeManager';
 import { Colors, Layout } from '@/constants';
@@ -305,7 +305,12 @@ export function RealTimeOrderList() {
       {pastOrders.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Past Orders</Text>
-          {pastOrders.map(order => renderOrder({ item: order }))}
+          <FlatList
+            data={pastOrders}
+            renderItem={renderOrder}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.ordersList}
+          />
         </>
       )}
     </View>
