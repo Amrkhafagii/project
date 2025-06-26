@@ -68,32 +68,8 @@ export class SupabaseAuthRepository implements IAuthRepository {
         );
       }
 
-      // The profiles table uses different column names based on the migration
-      // user_id instead of id, phone instead of phone_number
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,  // Changed from 'id' to 'user_id'
-          full_name: data.fullName,
-          phone: data.phoneNumber,     // Changed from 'phone_number' to 'phone'
-          role: data.role,
-          onboarded: false,            // Added required field from migration
-        });
-
-      if (profileError) {
-        logger.error('Profile creation error', { profileError, userId: authData.user.id });
-        // Rollback auth user if profile creation fails
-        try {
-          // Note: admin methods may not be available in client SDK
-          // Instead, we'll let the user retry signup
-        } catch (rollbackError) {
-          logger.error('Failed to rollback user creation', { rollbackError });
-        }
-        throw new AuthError(
-          AuthErrorCode.PROFILE_CREATION_FAILED,
-          `Failed to create user profile: ${profileError.message}`
-        );
-      }
+      // Don't try to manually create profile - let the database trigger handle it
+      // The trigger will use the metadata we passed in options.data
 
       // If no session (email confirmation required), create a partial session
       if (!authData.session) {
@@ -193,18 +169,16 @@ export class SupabaseAuthRepository implements IAuthRepository {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)  // Changed from 'id' to 'user_id'
+        .eq('user_id', userId)
         .single();
 
       if (error || !data) {
         return null;
       }
 
-      // Get email from auth.users table since it's not in profiles
-      const { data: authUser } = await supabase.auth.admin?.getUser?.(userId) || 
-        await supabase.auth.getUser();
-
-      const email = authUser?.user?.email || '';
+      // Get the current user's email from auth
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const email = authUser?.email || '';
 
       return {
         id: data.user_id,
@@ -232,7 +206,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
       const { data, error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('user_id', userId)  // Changed from 'id' to 'user_id'
+        .eq('user_id', userId)
         .select()
         .single();
 
@@ -243,9 +217,9 @@ export class SupabaseAuthRepository implements IAuthRepository {
         );
       }
 
-      // Get email from auth.users table
-      const { data: authUser } = await supabase.auth.getUser();
-      const email = authUser?.user?.email || '';
+      // Get email from current auth user
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const email = authUser?.email || '';
 
       return {
         id: data.user_id,
@@ -357,9 +331,15 @@ export class SupabaseAuthRepository implements IAuthRepository {
   }
 
   private async mapToUser(supabaseUser: any): Promise<User> {
+    // First try to get from profiles table
     const profile = await this.getUserById(supabaseUser.id);
     
-    return profile || {
+    if (profile) {
+      return profile;
+    }
+
+    // Fallback to user metadata if profile doesn't exist yet
+    return {
       id: supabaseUser.id,
       email: supabaseUser.email!,
       role: supabaseUser.user_metadata?.role || 'customer',
