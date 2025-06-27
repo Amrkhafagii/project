@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "dev": "expo start",
+    "dev": "npx expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "web": "npx expo start --web",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "type-check": "tsc --noEmit",
     "test:watch": "jest --watch",
@@ -72,6 +72,7 @@
   "devDependencies": {
     "@babel/core": "^7.27.4",
     "@testing-library/jest-native": "^5.4.3",
+    "expo-cli": "^6.3.10",
     "@testing-library/react-native": "^13.2.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.10.5",
